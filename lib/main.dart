@@ -14,6 +14,7 @@ import 'ui/basics.dart';
 import 'ui/warmup.dart';
 
 final _warm = ValueNotifier(true);
+final _booted = ValueNotifier(false);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,14 +25,20 @@ Future<void> main() async {
     ..mode = Mode.demo
     ..snapshot = demoSnapshot()
     ..locked = false;
-  runApp(LiquidGlassWidgets.wrap(theme: const GlassThemeData(
+  final app = LiquidGlassWidgets.wrap(theme: const GlassThemeData(
         // iOS 27 optics, drawn as a plain blur: the refraction shader costs a
         // phone browser too much on every button that scrolls. The tab bar
         // keeps the full shader (see Dock).
         light: GlassThemeVariant(settings: GlassThemeSettings.ios27Light, quality: GlassQuality.minimal),
         dark: GlassThemeVariant(settings: GlassThemeSettings.ios27Dark, quality: GlassQuality.minimal),
-      ), child: FutureApp(state, demo)));
+      ), child: FutureApp(state, demo));
+  // runApp builds in one task and lays out in the next frame. In between,
+  // the browser hands the page focus and Flutter measures every focusable
+  // widget, none of which has a size yet. Nothing takes focus until then.
+  runApp(ValueListenableBuilder(valueListenable: _booted, child: app, builder: (_, booted, app) => ExcludeFocus(excluding: !booted, child: app!)));
+  WidgetsBinding.instance.addPostFrameCallback((_) => _booted.value = true);
   state.checkBio();
+
   // The first frames also paint the warm-up under the page (the very first
   // one can come before the canvas is ready); then it goes and the splash lifts.
   _afterFrames(2, () {
