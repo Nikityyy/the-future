@@ -8,6 +8,7 @@ class Holding {
     required this.amount,
     required this.value,
     required this.invested,
+    this.pid,
   });
 
   factory Holding.fromJson(Map<String, dynamic> j) => Holding(
@@ -21,6 +22,7 @@ class Holding {
         amount: (j['amount'] as num).toDouble(),
         value: (j['value'] as num).toDouble(),
         invested: (j['invested'] as num).toDouble(),
+        pid: j['pid'] as String?,
       );
 
   final String name;
@@ -29,6 +31,9 @@ class Holding {
   final double amount;
   final double value;
   final double invested;
+
+  /// Bitpanda's id for the asset's price chart; 'demo' for made-up prices.
+  final String? pid;
 
   double get gain => value - invested;
   double get gainPercent => invested > 0 ? gain / invested * 100 : 0;

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../format.dart';
 import '../platform/haptics.dart';
+import '../prices.dart';
 import '../snapshot.dart';
 import '../theme.dart';
 import 'basics.dart' show skipEntrance;
@@ -114,6 +115,137 @@ class _ValueHistoryState extends State<ValueHistory> {
     final day = '${l.day} ${_monthNames[l.month - 1]}';
     if (frame == 'day' || frame == 'week') return '$day, ${l.hour.toString().padLeft(2, '0')}:${l.minute.toString().padLeft(2, '0')}';
     return frame == 'month' ? day : '$day ${l.year}';
+  }
+}
+
+/// One holding's price over a picked period, loaded from Bitpanda when shown.
+/// Drag along the line to read a moment.
+class PriceChart extends StatefulWidget {
+  const PriceChart(this.h, {super.key});
+
+  final Holding h;
+
+  @override
+  State<PriceChart> createState() => _PriceChartState();
+}
+
+class _PriceChartState extends State<PriceChart> {
+  /// The picked period, and the one whose prices are on screen: the old line
+  /// stays, with its own words, until the new one has loaded.
+  String _period = 'month', _shown = 'month';
+  List<(DateTime, double)>? _pts;
+  bool _failed = false;
+  int? _scrub;
+
+  @override
+  void initState() {
+    super.initState();
+    _pick('month');
+  }
+
+  void _pick(String period) {
+    setState(() {
+      _period = period;
+      _failed = false;
+      _scrub = null;
+    });
+    prices(widget.h, period).then(
+      (pts) {
+        if (!mounted || _period != period) return;
+        setState(() {
+          _pts = pts;
+          _shown = period;
+        });
+      },
+      onError: (Object _) {
+        if (mounted && _period == period) setState(() => _failed = true);
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = chartPeriods.firstWhere((p) => p.$1 == _shown);
+    final pts = _pts ?? const [];
+    final ok = pts.length > 1;
+    final i = _scrub;
+    final up = !ok || pts.last.$2 >= pts.first.$2;
+    String unit(double v) => eur(v, cents: v < 1000);
+
+    final Widget head;
+    if (_failed) {
+      head = GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _pick(_period),
+        child: Text.rich(TextSpan(children: [
+          TextSpan(text: 'The price chart did not load.  ', style: sans(14, color: C.ink2)),
+          TextSpan(text: 'Try again', style: sans(14, weight: FontWeight.w600, color: C.navy)),
+        ])),
+      );
+    } else if (ok && i != null) {
+      head = Text.rich(TextSpan(children: [
+        TextSpan(text: unit(pts[i].$2), style: figures(sans(14, weight: FontWeight.w600))),
+        TextSpan(text: '  ${_ValueHistoryState._when(pts[i].$1, _shown == 'five-years' ? 'year' : _shown)}', style: sans(14, color: C.ink2)),
+      ]));
+    } else if (ok) {
+      head = Text.rich(TextSpan(children: [
+        TextSpan(text: percent((pts.last.$2 / pts.first.$2 - 1) * 100), style: figures(sans(14, weight: FontWeight.w500, color: up ? C.greenInk : C.loss))),
+        TextSpan(text: '  ${p.$3}', style: sans(14, color: C.ink2)),
+      ]));
+    } else {
+      head = Text(_pts == null ? '' : 'No prices for this period.', style: sans(14, color: C.ink2));
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: SizedBox(height: 20, child: head)),
+          const SizedBox(height: 10),
+          LayoutBuilder(
+            builder: (context, box) {
+              void scrubTo(double dx) {
+                final n = (dx / box.maxWidth * (pts.length - 1)).round().clamp(0, pts.length - 1);
+                if (n != _scrub) {
+                  Haptics.selection();
+                  setState(() => _scrub = n);
+                }
+              }
+
+              // Room for the line while it loads; none when there is nothing to show.
+              if (!ok) return SizedBox(height: _pts == null && !_failed ? 150 : 0);
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onHorizontalDragStart: (d) => scrubTo(d.localPosition.dx),
+                onHorizontalDragUpdate: (d) => scrubTo(d.localPosition.dx),
+                onHorizontalDragEnd: (_) => setState(() => _scrub = null),
+                onHorizontalDragCancel: () => setState(() => _scrub = null),
+                child: Semantics(
+                  label: '${widget.h.name} price ${p.$3}: from ${unit(pts.first.$2)} to ${unit(pts.last.$2)}.',
+                  child: TweenAnimationBuilder<double>(
+                    key: ValueKey(_shown),
+                    tween: Tween(begin: 0, end: 1),
+                    duration: Duration(milliseconds: skipEntrance(context) ? 0 : 500),
+                    curve: Curves.easeOutCubic,
+                    builder: (_, t, _) => CustomPaint(size: Size(box.maxWidth, 150), painter: _Line(pts, up ? C.green : C.loss, t, i)),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Segments(
+              labels: [for (final p in chartPeriods) p.$2],
+              index: chartPeriods.indexWhere((p) => p.$1 == _period),
+              onChanged: (n) => _pick(chartPeriods[n].$1),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

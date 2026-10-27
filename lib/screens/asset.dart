@@ -7,6 +7,7 @@ import '../theme.dart';
 import '../ui/basics.dart';
 import '../ui/chrome.dart';
 import '../ui/filter.dart' show kindNames;
+import '../ui/history.dart' show PriceChart;
 import '../ui/lists.dart';
 
 const _monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -69,6 +70,7 @@ class AssetPage extends StatelessWidget {
               ),
             ),
           ),
+          if (h.pid != null) SliverToBoxAdapter(child: PriceChart(h)),
           SliverToBoxAdapter(
             child: Group(
               header: 'YOUR POSITION',

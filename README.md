@@ -7,7 +7,7 @@
 
 ## What it does
 
-- **Portfolio.** Total value, what you put in and what it returned, and how the value moved over a day, week, month, six months, a year or all time (Bitpanda's own history; the change leaves out money you added). Split into funds and stocks, crypto and metals, with a filter that is remembered. Tap a holding for your average buy price, the price now and every transaction in it. An eye hides every amount.
+- **Portfolio.** Total value, what you put in and what it returned, and how the value moved over a day, week, month, six months, a year or all time (Bitpanda's own history; the change leaves out money you added). Split into funds and stocks, crypto and metals, with a filter that is remembered. Tap a holding for its price over a day up to five years (straight from Bitpanda's public charts), your average buy price and every transaction in it. An eye hides every amount.
 - **Future.** A growth curve with a cautious, an expected and a hopeful case, a ruler for what you add each month, one-time additions ("€2,000 in March") and a yearly raise. The result shows what your account will say and what that is worth in today's money, and when you pass round amounts like €100k.
 - **Goal.** Set an amount and a year: the app says whether your plan gets there, and what monthly amount it takes if not.
 - **Export.** One Markdown file with every holding, every transaction and your plan, enough for a spreadsheet or an AI to analyse.
@@ -33,7 +33,7 @@ Bitpanda  <-- read-only key, in a GitHub secret --  GitHub Actions (every 3 hour
 - The key has the **Read** scope only: it cannot buy, sell or withdraw.
 - `data.enc` is public, because GitHub Pages is. It is useless without the passphrase, so use a long one (four random words).
 - On your phone the passphrase is sealed under your PIN, and optionally under a passkey that Face ID unlocks (WebAuthn with the PRF extension; iOS 18 or later).
-- No server, no account, no analytics.
+- No server of its own, no account, no analytics. The only other address the app asks is Bitpanda's public price chart, for the holding you open; no key and nothing about you goes with it.
 
 ## Set it up
 

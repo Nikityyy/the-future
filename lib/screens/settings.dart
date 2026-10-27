@@ -114,7 +114,7 @@ class SettingsPage extends StatelessWidget {
                 child: Group(
                   header: 'PRIVACY',
                   children: const [
-                    Row2(title: 'No account, no tracking', subtitle: 'This app talks to no server but its own page. Plan and portfolio stay in this browser.'),
+                    Row2(title: 'No account, no tracking', subtitle: 'Besides its own page, the app only asks Bitpanda for the price chart of a holding you open. Plan and portfolio stay in this browser.'),
                     Row2(title: 'Your key stays on GitHub', subtitle: 'The read-only Bitpanda key sits in a GitHub secret and never reaches this phone.'),
                   ],
                 ),
