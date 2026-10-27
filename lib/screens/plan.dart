@@ -1,5 +1,4 @@
 import 'package:flutter/widgets.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../format.dart';
 import '../platform/haptics.dart';
@@ -36,16 +35,24 @@ class _Round extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
+  // A plain tinted circle, not glass: a sheet holds up to twenty of these,
+  // and a blur behind each one makes the whole sheet stutter as it scrolls.
   @override
-  Widget build(BuildContext context) => GlassButton.custom(
+  Widget build(BuildContext context) => Pressable(
+        haptic: false,
+        scale: 0.9,
+        semanticLabel: switch (label) { '+' => 'Increase', '−' => 'Decrease', _ => 'Remove' },
         onTap: () {
           Haptics.selection();
           onTap();
         },
-        label: label == '+' ? 'Increase' : 'Decrease',
-        width: 34,
-        height: 34,
-        child: Text(label, style: sans(19, color: C.ink)),
+        child: Container(
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: C.ink.withValues(alpha: 0.06), shape: BoxShape.circle),
+          child: Text(label, style: sans(19, color: C.ink)),
+        ),
       );
 }
 
@@ -82,7 +89,7 @@ class AssumptionsSheet extends StatelessWidget {
                   header: 'YOUR MONEY',
                   children: [
                     Row2(title: 'Inflation', trailing: _Stepper(text: _pct(state.inflation), onMinus: () => state.setPlan(inflation: (state.inflation - 0.5).clamp(0, 10)), onPlus: () => state.setPlan(inflation: (state.inflation + 0.5).clamp(0, 10)))),
-                    Row2(title: 'Savings account rate', subtitle: 'What the comparison with a savings account pays a year', trailing: _Stepper(text: _pct(state.savingsRate), onMinus: () => state.setPlan(savingsRate: (state.savingsRate - 0.25).clamp(0, 10)), onPlus: () => state.setPlan(savingsRate: (state.savingsRate + 0.25).clamp(0, 10)))),
+                    Row2(title: 'Savings account rate', subtitle: 'What a savings account pays a year', trailing: _Stepper(text: _pct(state.savingsRate), onMinus: () => state.setPlan(savingsRate: (state.savingsRate - 0.25).clamp(0, 10)), onPlus: () => state.setPlan(savingsRate: (state.savingsRate + 0.25).clamp(0, 10)))),
                     Row2(title: 'Yearly raise', subtitle: 'Add more each year, such as with your pay', trailing: _Stepper(text: _pct(state.raisePercent), onMinus: () => state.setPlan(raisePercent: (state.raisePercent - 1).clamp(0, 30)), onPlus: () => state.setPlan(raisePercent: (state.raisePercent + 1).clamp(0, 30)))),
                   ],
                 ),
@@ -119,13 +126,31 @@ class Switch2 extends StatelessWidget {
   final ValueChanged<bool> onChanged;
 
   @override
-  Widget build(BuildContext context) => GlassSwitch(
-        value: on,
-        onChanged: onChanged,
-        activeColor: C.green,
-        width: 54,
-        height: 30,
-        semanticLabel: on ? 'On' : 'Off',
+  Widget build(BuildContext context) => Semantics(
+        toggled: on,
+        child: GestureDetector(
+          onTap: () {
+            Haptics.selection();
+            onChanged(!on);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            width: 54,
+            height: 30,
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(color: on ? C.green : const Color(0x2916170F), borderRadius: BorderRadius.circular(15)),
+            child: AnimatedAlign(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutBack,
+              alignment: on ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                width: 26,
+                height: 26,
+                decoration: const BoxDecoration(color: C.raised, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Color(0x2616170F), blurRadius: 4, offset: Offset(0, 2))]),
+              ),
+            ),
+          ),
+        ),
       );
 }
 

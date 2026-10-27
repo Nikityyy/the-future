@@ -1,5 +1,4 @@
 import 'package:flutter/widgets.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../platform/haptics.dart';
 import '../platform/web_glue.dart';
@@ -104,12 +103,11 @@ class _PinPadState extends State<PinPad> with SingleTickerProviderStateMixin {
                       child: k.isEmpty
                           ? (widget.onBio == null
                               ? const SizedBox(width: 76, height: 76)
-                              : GlassButton.custom(
-                                  label: 'Unlock with biometrics',
-                                  width: 76,
-                                  height: 76,
+                              : Pressable(
+                                  scale: 0.92,
+                                  semanticLabel: 'Unlock with biometrics',
                                   onTap: widget.onBio!,
-                                  child: const CustomPaint(size: Size(34, 34), painter: FaceIdPainter()),
+                                  child: const SizedBox(width: 76, height: 76, child: Center(child: CustomPaint(size: Size(34, 34), painter: FaceIdPainter()))),
                                 ))
                           : k == '<'
                               ? Pressable(
@@ -119,15 +117,17 @@ class _PinPadState extends State<PinPad> with SingleTickerProviderStateMixin {
                                   onTap: _back,
                                   child: const SizedBox(width: 76, height: 76, child: Center(child: _Backspace())),
                                 )
-                              : GlassButton.custom(
-                                  label: k,
-                                  width: 76,
-                                  height: 76,
-                                  onTap: () {
-                                    Haptics.tick();
-                                    _press(k);
-                                  },
-                                  child: Text(k, style: figures(serif(32, tracking: 0))),
+                              : Pressable(
+                                  scale: 0.92,
+                                  semanticLabel: k,
+                                  onTap: () => _press(k),
+                                  child: Container(
+                                    width: 76,
+                                    height: 76,
+                                    alignment: Alignment.center,
+                                    decoration: const BoxDecoration(color: C.fill, shape: BoxShape.circle),
+                                    child: Text(k, style: figures(serif(32, tracking: 0))),
+                                  ),
                                 ),
                     ),
                 ],

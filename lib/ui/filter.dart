@@ -1,12 +1,12 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/widgets.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../platform/haptics.dart';
 
 import '../projection.dart';
 import '../state.dart';
 import '../theme.dart';
+import 'basics.dart' show Pressable;
 
 const kindNames = {Kind.fund: 'Funds and stocks', Kind.crypto: 'Crypto', Kind.metal: 'Metals'};
 const kindColors = {Kind.fund: C.green, Kind.crypto: C.navy, Kind.metal: C.sand};
@@ -18,15 +18,16 @@ class EyeButton extends StatelessWidget {
   final AppState state;
 
   @override
-  Widget build(BuildContext context) => GlassIconButton(
-        size: 40,
-        quality: GlassQuality.minimal,
+  Widget build(BuildContext context) => Pressable(
+        scale: 0.9,
         semanticLabel: state.hide ? 'Show amounts' : 'Hide amounts',
-        icon: Icon(state.hide ? CupertinoIcons.eye_slash : CupertinoIcons.eye, size: 20, color: C.ink),
-        onPressed: () {
-          Haptics.tick();
-          state.setHide(!state.hide);
-        },
+        onTap: () => state.setHide(!state.hide),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: const BoxDecoration(color: C.fill, shape: BoxShape.circle),
+          child: Icon(state.hide ? CupertinoIcons.eye_slash : CupertinoIcons.eye, size: 20, color: C.ink),
+        ),
       );
 }
 
@@ -69,18 +70,23 @@ class KindChip extends StatelessWidget {
         padding: const EdgeInsets.only(right: 8),
         child: Center(
           widthFactor: 1,
-          child: GlassChip(
-            label: label,
+          child: Semantics(
             selected: on,
-            quality: GlassQuality.minimal,
-            selectedColor: C.navy,
-            semanticLabel: label,
-            padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 15, vertical: 9),
-            labelStyle: sans(14.5, weight: FontWeight.w500, color: on ? C.ground : C.ink),
-            onTap: () {
-              if (!on) Haptics.selection();
-              onTap();
-            },
+            child: Pressable(
+              haptic: false,
+              scale: 0.95,
+              semanticLabel: label,
+              onTap: () {
+                if (!on) Haptics.selection();
+                onTap();
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 15, vertical: 9),
+                decoration: BoxDecoration(color: on ? C.navy : C.fill, borderRadius: BorderRadius.circular(20)),
+                child: Text(label, style: sans(14.5, weight: FontWeight.w500, color: on ? C.ground : C.ink)),
+              ),
+            ),
           ),
         ),
       );

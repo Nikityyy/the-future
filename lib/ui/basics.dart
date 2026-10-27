@@ -2,7 +2,6 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../format.dart';
 import '../platform/haptics.dart';
@@ -226,7 +225,8 @@ class _CountUpState extends State<CountUp> {
   }
 }
 
-/// Rounded button: navy and filled, or a quiet outline.
+/// Rounded button: navy and filled, or a quiet grey one. Plain, not glass:
+/// it sits on a still background, where glass would only cost a blur.
 class AppButton extends StatelessWidget {
   const AppButton(this.label, {super.key, required this.onTap, this.filled = true, this.busy = false});
 
@@ -239,20 +239,14 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final on = onTap != null && !busy;
     final ink = filled ? C.ground : C.ink;
-    return LayoutBuilder(
-      builder: (context, box) => GlassButton.custom(
-        onTap: () {
-          if (!on) return;
-          Haptics.tick();
-          onTap!();
-        },
-        enabled: on || busy,
-        label: label,
-        width: box.maxWidth,
+    return Pressable(
+      scale: 0.98,
+      semanticLabel: label,
+      onTap: on ? onTap : null,
+      child: Container(
         height: 54,
-        shape: const LiquidRoundedSuperellipse(borderRadius: 27),
-        style: filled ? GlassButtonStyle.prominent : GlassButtonStyle.filled,
-        settings: filled ? LiquidGlassSettings(glassColor: (onTap == null ? C.ink3 : C.navy).withValues(alpha: 0.92), thickness: 24, blur: 6) : null,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: filled ? (onTap == null ? C.ink3 : C.navy) : C.fill, borderRadius: BorderRadius.circular(27)),
         child: busy
             ? SizedBox(width: 20, height: 20, child: _Spinner(color: ink))
             : Text(label, style: sans(16, weight: FontWeight.w600, color: ink)),

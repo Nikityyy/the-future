@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createDecipheriv, pbkdf2Sync } from 'node:crypto';
 import { test } from 'node:test';
-import { buildSnapshot, historyFrom, kindOf, seal, unseal, withPids } from '../tools/snapshot.mjs';
+import { buildSnapshot, historyFrom, kindOf, seal, unseal } from '../tools/snapshot.mjs';
 
 const assets = [
   { id: 'btc', name: 'Bitcoin', symbol: 'BTC', type: 'CRYPTO', group: 'CRYPTOCOIN' },
@@ -64,19 +64,6 @@ test('keeps history older than the Bitpanda year from the last sync', () => {
   assert.equal(h.day[0][1], 101.23);
   assert.deepEqual(h.week, []);
   assert.deepEqual(historyFrom({}, undefined).all, []);
-});
-
-test('finds the chart id by symbol within the holding kind', () => {
-  const c = (symbol, pid) => ({ attributes: { symbol, pid } });
-  const currencies = { data: { attributes: { cryptocoins: [c('BTC', 'p-btc')], stocks: [c('BTC', 'p-stock')], etfs: [c('SXR8', 'p-sxr8')] } } };
-  const [btc, etf, gone] = withPids(
-    [{ symbol: 'BTC', kind: 'crypto' }, { symbol: 'SXR8', kind: 'fund' }, { symbol: 'NOPE', kind: 'fund' }],
-    currencies,
-  );
-  assert.equal(btc.pid, 'p-btc');
-  assert.equal(etf.pid, 'p-sxr8');
-  assert.equal(gone.pid, undefined);
-  assert.deepEqual(withPids([{ symbol: 'BTC', kind: 'crypto' }], undefined), [{ symbol: 'BTC', kind: 'crypto' }]);
 });
 
 test('unseal reads what seal wrote', () => {

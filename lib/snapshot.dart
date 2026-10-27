@@ -22,7 +22,7 @@ class Holding {
         amount: (j['amount'] as num).toDouble(),
         value: (j['value'] as num).toDouble(),
         invested: (j['invested'] as num).toDouble(),
-        pid: j['pid'] as String?,
+        pid: j['id'] as String?,
       );
 
   final String name;
@@ -32,7 +32,7 @@ class Holding {
   final double value;
   final double invested;
 
-  /// Bitpanda's id for the asset's price chart; 'demo' for made-up prices.
+  /// Bitpanda's asset id, which its price charts use too; 'demo' for made-up prices.
   final String? pid;
 
   double get gain => value - invested;

@@ -95,18 +95,8 @@ try {
 }
 const history = historyFrom(byTimeframe, previous);
 
-// Bitpanda's public list of everything it sells, for the ids its price charts use. No key needed.
-let currencies;
-try {
-  const res = await fetch('https://api.bitpanda.com/v3/currencies');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  currencies = await res.json();
-} catch (e) {
-  console.log(`::warning title=No price charts::${e.message}`);
-}
-
-const snapshot = buildSnapshot({ portfolio, assets, operations, history, currencies });
-console.log(`Synced ${snapshot.holdings.length} holdings (${snapshot.holdings.filter((h) => h.pid).length} with a price chart), ${operations.length} operations and ${history.all.length} history points.`);
+const snapshot = buildSnapshot({ portfolio, assets, operations, history });
+console.log(`Synced ${snapshot.holdings.length} holdings, ${operations.length} operations and ${history.all.length} history points.`);
 await mkdir(dirname(out), { recursive: true });
 await writeFile(out, JSON.stringify(seal(snapshot, pass)));
 }

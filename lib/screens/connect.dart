@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:flutter/services.dart' show Clipboard;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -32,6 +31,7 @@ class _ConnectSheetState extends State<ConnectSheet> {
   final _field = TextEditingController();
   bool _busy = false;
   bool _entering = false;
+  bool _show = false;
   final _title = GlobalKey(), _entryTitle = GlobalKey();
   String? _error;
   String? _passphrase;
@@ -123,14 +123,25 @@ class _ConnectSheetState extends State<ConnectSheet> {
                 Row(
                   children: [
                     Expanded(
-                      child: GlassPasswordField(
+                      child: CupertinoTextField(
                         controller: _field,
                         autofocus: true,
+                        obscureText: !_show,
+                        autocorrect: false,
+                        enableSuggestions: false,
                         placeholder: 'Passphrase',
                         placeholderStyle: sans(16, color: C.ink3),
-                        textStyle: sans(16),
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                        shape: const LiquidRoundedSuperellipse(borderRadius: 22),
+                        style: sans(16),
+                        cursorColor: C.navy,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        decoration: BoxDecoration(color: C.raised, borderRadius: BorderRadius.circular(22), border: Border.all(color: C.rule)),
+                        prefix: const Padding(padding: EdgeInsets.only(left: 16), child: Icon(CupertinoIcons.lock_fill, size: 18, color: C.ink3)),
+                        suffix: Pressable(
+                          haptic: false,
+                          semanticLabel: _show ? 'Hide passphrase' : 'Show passphrase',
+                          onTap: () => setState(() => _show = !_show),
+                          child: Padding(padding: const EdgeInsets.fromLTRB(8, 12, 16, 12), child: Icon(_show ? CupertinoIcons.eye : CupertinoIcons.eye_slash, size: 20, color: C.ink3)),
+                        ),
                         onSubmitted: (_) => _check(),
                       ),
                     ),

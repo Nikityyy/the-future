@@ -6,6 +6,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import '../platform/haptics.dart';
 import '../platform/web_glue.dart';
 import '../theme.dart';
+import 'basics.dart' show AppScrollBehavior, Pressable;
 
 /// The Liquid Glass tab bar, floating over the pages.
 class Dock extends StatelessWidget {
@@ -48,23 +49,131 @@ class Dock extends StatelessWidget {
       );
 }
 
-/// A Liquid Glass sheet that rises over the page and closes with a drag down.
-/// [height] makes a short sheet only as tall as it needs, up to the usual 88%.
+/// A sheet that rises over the page and closes with a drag down, from its
+/// handle or from a list already at its top. [height] makes a short sheet only
+/// as tall as it needs, up to the usual 88%. Solid, not glass: it covers the
+/// page, so glass would only cost a blur on every frame it scrolls.
 Future<T?> showSheet<T>(BuildContext context, WidgetBuilder builder, {double? height}) {
   Haptics.tick();
-  return GlassSheet.show<T>(
-    context: context,
-    useRootNavigator: true,
-    isScrollable: false,
-    showDragIndicator: true,
-    dragIndicatorColor: C.ink3,
-    margin: const EdgeInsets.fromLTRB(6, 0, 6, 6),
-    settings: LiquidGlassSettings(glassColor: C.ground.withValues(alpha: 0.9), blur: 18, thickness: 22),
-    builder: (context) {
-      final most = MediaQuery.sizeOf(context).height * 0.88;
-      return SizedBox(height: height == null ? most : (height + browserSafeArea().bottom).clamp(0, most), child: builder(context));
-    },
-  );
+  return Navigator.of(context, rootNavigator: true).push(_SheetRoute<T>(builder, height));
+}
+
+class _SheetRoute<T> extends PopupRoute<T> {
+  _SheetRoute(this.builder, this.height);
+
+  final WidgetBuilder builder;
+  final double? height;
+
+  @override
+  Color get barrierColor => const Color(0x5216170F);
+  @override
+  bool get barrierDismissible => true;
+  @override
+  String get barrierLabel => 'Close';
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 420);
+  @override
+  Duration get reverseTransitionDuration => const Duration(milliseconds: 280);
+
+  double _tall = 1;
+
+  /// Follows the finger: [dy] pixels down closes that much of the sheet.
+  void _drag(double dy) {
+    if (controller!.isAnimating) controller!.stop();
+    controller!.value = (controller!.value - dy / _tall).clamp(0.0, 1.0);
+  }
+
+  /// Closes on a flick down or past 40% of the way; otherwise springs back.
+  void _release(double velocity) {
+    if (controller!.value >= 1) return;
+    if (velocity > 700 || controller!.value < 0.6) {
+      navigator?.pop();
+    } else {
+      controller!.animateTo(1, duration: const Duration(milliseconds: 300), curve: Curves.easeOutCubic);
+    }
+  }
+
+  @override
+  Widget buildPage(BuildContext context, Animation<double> animation, Animation<double> secondary) {
+    final most = MediaQuery.sizeOf(context).height * 0.88;
+    _tall = height == null ? most : (height! + browserSafeArea().bottom).clamp(0, most);
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(6, 0, 6, 6),
+        child: GestureDetector(
+          onVerticalDragUpdate: (d) => _drag(d.delta.dy),
+          onVerticalDragEnd: (d) => _release(d.velocity.pixelsPerSecond.dy),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: ColoredBox(
+              color: C.ground,
+              child: SizedBox(
+                height: _tall,
+                child: Column(
+                  children: [
+                    // The handle.
+                    Container(
+                      width: 38,
+                      height: 5,
+                      margin: const EdgeInsets.fromLTRB(0, 8, 0, 9),
+                      decoration: BoxDecoration(color: C.ink3.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(3)),
+                    ),
+                    Expanded(
+                      child: NotificationListener<ScrollNotification>(
+                        onNotification: (n) {
+                          if (n.depth != 0) return false;
+                          // Pulled down past the top of the list: the sheet follows.
+                          if (n is OverscrollNotification && n.dragDetails != null && n.overscroll < 0) _drag(-n.overscroll);
+                          if (n is ScrollUpdateNotification && n.dragDetails != null && controller!.value < 1) _drag(-n.scrollDelta!);
+                          if (n is ScrollEndNotification) _release(n.dragDetails?.velocity.pixelsPerSecond.dy ?? 0);
+                          return false;
+                        },
+                        // Clamped, so pulling down at the top moves the sheet and not the list.
+                        child: ScrollConfiguration(
+                          behavior: const _SheetScrollBehavior(),
+                          child: Builder(builder: builder),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // The slide below is linear so a finger moves the sheet one to one; the
+  // easing goes on the runs the sheet makes by itself.
+  @override
+  TickerFuture didPush() {
+    super.didPush();
+    return controller!.animateTo(1, curve: Curves.easeOutCubic);
+  }
+
+  @override
+  bool didPop(T? result) {
+    final popped = super.didPop(result);
+    controller!.animateBack(0, duration: reverseTransitionDuration, curve: Curves.easeInCubic);
+    return popped;
+  }
+
+  @override
+  Widget buildTransitions(BuildContext context, Animation<double> animation, Animation<double> secondary, Widget child) =>
+      SlideTransition(position: Tween(begin: const Offset(0, 1), end: Offset.zero).animate(animation), child: child);
+}
+
+class _SheetScrollBehavior extends AppScrollBehavior {
+  const _SheetScrollBehavior();
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) => const ClampingScrollPhysics();
+
+  @override
+  Widget buildOverscrollIndicator(BuildContext context, Widget child, ScrollableDetails details) => child;
 }
 
 /// Asks before something that cannot be undone. True when confirmed.
@@ -81,16 +190,20 @@ Future<bool> confirmSheet(BuildContext context, {required String title, required
           const SizedBox(height: 8),
           Text(message, style: sans(15, color: C.ink2, height: 1.45)),
           const Spacer(),
-          GlassButton.custom(
+          Pressable(
+            haptic: false,
+            scale: 0.98,
+            semanticLabel: action,
             onTap: () {
               Haptics.confirm();
               Navigator.of(context).pop(true);
             },
-            label: action,
-            width: double.infinity,
-            height: 54,
-            shape: const LiquidRoundedSuperellipse(borderRadius: 27),
-            child: Text(action, style: sans(16, weight: FontWeight.w600, color: C.loss)),
+            child: Container(
+              height: 54,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: C.fill, borderRadius: BorderRadius.circular(27)),
+              child: Text(action, style: sans(16, weight: FontWeight.w600, color: C.loss)),
+            ),
           ),
           const SizedBox(height: 10),
           Center(child: PillButton('Cancel', onTap: () => Navigator.of(context).pop(false))),
@@ -247,7 +360,7 @@ class SheetHeader extends StatelessWidget {
       );
 }
 
-/// A small glass capsule with a word on it, like Done or Close.
+/// A small grey capsule with a word on it, like Done or Close.
 class PillButton extends StatelessWidget {
   const PillButton(this.label, {super.key, required this.onTap, this.strong = false});
 
@@ -256,20 +369,21 @@ class PillButton extends StatelessWidget {
   final bool strong;
 
   @override
-  Widget build(BuildContext context) => GlassButton.custom(
-        onTap: () {
-          Haptics.tick();
-          onTap();
-        },
-        label: label,
-        height: 38,
-        width: label.length * 8.5 + 34,
-        shape: const LiquidRoundedSuperellipse(borderRadius: 19),
-        child: Text(label, style: sans(15, weight: strong ? FontWeight.w600 : FontWeight.w500, color: C.ink)),
+  Widget build(BuildContext context) => Pressable(
+        scale: 0.95,
+        semanticLabel: label,
+        onTap: onTap,
+        child: Container(
+          height: 38,
+          padding: const EdgeInsets.symmetric(horizontal: 17),
+          decoration: BoxDecoration(color: C.fill, borderRadius: BorderRadius.circular(19)),
+          // As wide as the word, wherever the capsule sits.
+          child: Center(widthFactor: 1, child: Text(label, style: sans(15, weight: strong ? FontWeight.w600 : FontWeight.w500, color: C.ink))),
+        ),
       );
 }
 
-/// Liquid Glass segmented control.
+/// A segmented control, iOS style: a grey track and a white thumb that slides.
 class Segments extends StatelessWidget {
   const Segments({super.key, required this.labels, required this.index, required this.onChanged});
 
@@ -278,15 +392,50 @@ class Segments extends StatelessWidget {
   final ValueChanged<int> onChanged;
 
   @override
-  Widget build(BuildContext context) => GlassSegmentedControl(
-        segments: [for (final l in labels) GlassSegment(label: l)],
-        selectedIndex: index,
-        onSegmentSelected: (i) {
-          if (i != index) Haptics.selection();
-          onChanged(i);
-        },
+  Widget build(BuildContext context) => Container(
         height: 40,
-        selectedTextStyle: sans(14, weight: FontWeight.w600, color: C.ink),
-        unselectedTextStyle: sans(14, weight: FontWeight.w500, color: C.ink2),
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(color: C.fill, borderRadius: BorderRadius.circular(20)),
+        child: Stack(
+          children: [
+            AnimatedAlign(
+              alignment: Alignment(labels.length < 2 ? 0 : -1 + 2 * index / (labels.length - 1), 0),
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOutCubic,
+              child: FractionallySizedBox(
+                widthFactor: 1 / labels.length,
+                heightFactor: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: C.raised,
+                    borderRadius: BorderRadius.circular(17),
+                    boxShadow: const [BoxShadow(color: Color(0x1A16170F), blurRadius: 6, offset: Offset(0, 2))],
+                  ),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                for (final (i, l) in labels.indexed)
+                  Expanded(
+                    child: Semantics(
+                      button: true,
+                      selected: i == index,
+                      label: l,
+                      excludeSemantics: true,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          if (i != index) Haptics.selection();
+                          onChanged(i);
+                        },
+                        child: Center(child: Text(l, maxLines: 1, style: sans(14, weight: i == index ? FontWeight.w600 : FontWeight.w500, color: i == index ? C.ink : C.ink2))),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       );
 }

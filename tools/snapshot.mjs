@@ -119,34 +119,12 @@ export function historyFrom(byTimeframe, previous) {
   return h;
 }
 
-// Where each kind of holding sits in Bitpanda's public list of currencies, most likely first.
-const GROUPS = {
-  crypto: ['cryptocoins', 'leveraged_tokens'],
-  fund: ['etfs', 'stocks', 'etcs', 'index'],
-  metal: ['commodities'],
-};
-
-/**
- * Gives each holding the pid Bitpanda's chart endpoint knows it by, matched on
- * symbol within its kind. The list comes from api.bitpanda.com/v3/currencies.
- */
-export function withPids(holdings, currencies) {
-  const lists = currencies?.data?.attributes ?? {};
-  return holdings.map((h) => {
-    for (const g of GROUPS[h.kind] ?? []) {
-      const hit = (lists[g] ?? []).find((c) => c?.attributes?.symbol === h.symbol);
-      if (hit?.attributes?.pid) return { ...h, pid: hit.attributes.pid };
-    }
-    return h;
-  });
-}
-
-export function buildSnapshot({ portfolio, assets, operations, history, currencies, now = new Date() }) {
+export function buildSnapshot({ portfolio, assets, operations, history, now = new Date() }) {
   return {
     v: 1,
     generatedAt: now.toISOString(),
     currency: 'EUR',
-    holdings: withPids(holdingsFrom(portfolio, assets), currencies),
+    holdings: holdingsFrom(portfolio, assets),
     monthly: monthlyFrom(operations, assets, now),
     trades: tradesFrom(operations, assets),
     ...(history && { history }),
