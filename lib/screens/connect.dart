@@ -78,6 +78,17 @@ class _ConnectSheetState extends State<ConnectSheet> {
     return true;
   }
 
+  /// Once the keyboard is up, scroll the sheet so the field sits above it.
+  void _lift() {
+    final c = SheetScroll.of(context);
+    if (c == null) return;
+    for (final ms in [320, 650]) {
+      Future.delayed(Duration(milliseconds: ms), () {
+        if (mounted && c.hasClients) c.animateTo(c.position.maxScrollExtent, duration: const Duration(milliseconds: 220), curve: Curves.easeOutCubic);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_passphrase != null) {
@@ -155,6 +166,7 @@ class _ConnectSheetState extends State<ConnectSheet> {
                           decoration: null,
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           onSubmitted: (_) => _check(),
+                          onTap: _lift,
                         ),
                       ),
                       Pressable(
@@ -172,7 +184,8 @@ class _ConnectSheetState extends State<ConnectSheet> {
             ),
           ),
         ),
-        SliverToBoxAdapter(child: SizedBox(height: 40 + browserSafeArea().bottom)),
+        // Room for the keyboard, so the passphrase field can rise above it.
+        SliverToBoxAdapter(child: SizedBox(height: 40 + browserSafeArea().bottom + MediaQuery.viewInsetsOf(context).bottom)),
       ],
     );
   }
