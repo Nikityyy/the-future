@@ -65,7 +65,7 @@ jobs:
       # The version shown in You: the pubspec version, the run number and the commit.
       - name: Build Flutter web (PWA)
         run: >
-          flutter build web --release --base-href /${{ github.event.repository.name }}/app/ --no-web-resources-cdn
+          flutter build web --wasm --release --base-href /${{ github.event.repository.name }}/app/ --no-web-resources-cdn
           --build-number=${{ github.run_number }}
           --dart-define=APP_VERSION=${{ steps.version.outputs.name }}
           --dart-define=APP_BUILD=${{ github.run_number }}

@@ -65,6 +65,11 @@
       const hadController = !!navigator.serviceWorker.controller;
       let reloading = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // First install on a browser without WasmGC: it runs main.dart.js on CanvasKit,
+        // which the worker does not precache. Fetch them once through it so they work offline.
+        if (!hadController && !WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 95, 1, 120, 0]))) {
+          ['main.dart.js', 'canvaskit/canvaskit.js', 'canvaskit/canvaskit.wasm'].forEach((u) => fetch(u).catch(() => {}));
+        }
         if (!hadController || reloading) return;
         reloading = true;
         window.location.reload();

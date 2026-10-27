@@ -2,6 +2,7 @@
 //   flutter build web --base-href /the-future/app/ && node tools/serve.mjs [port]
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
+import { createGzip } from 'node:zlib';
 import { extname, join, normalize } from 'node:path';
 
 const port = Number(process.argv[2] ?? 4173);
@@ -14,6 +15,8 @@ createServer((req, res) => {
   let file = join(root, normalize('/' + rest));
   if (existsSync(file) && statSync(file).isDirectory()) file = join(file, 'index.html');
   if (!existsSync(file)) file = root === 'landing' ? 'landing/404.html' : join(root, 'index.html');
-  res.writeHead(existsSync(file) ? 200 : 404, { 'content-type': types[extname(file)] ?? 'application/octet-stream', 'cache-control': 'no-store' });
-  createReadStream(file).pipe(res);
+  // Gzip like GitHub Pages does, so load times here match the real site.
+  const gzip = /gzip/.test(req.headers['accept-encoding'] ?? '') && !['.png', '.webp', '.woff2'].includes(extname(file));
+  res.writeHead(existsSync(file) ? 200 : 404, { 'content-type': types[extname(file)] ?? 'application/octet-stream', 'cache-control': 'no-store', ...(gzip && { 'content-encoding': 'gzip' }) });
+  gzip ? createReadStream(file).pipe(createGzip()).pipe(res) : createReadStream(file).pipe(res);
 }).listen(port, () => console.log(`http://localhost:${port}/the-future/  (app at /the-future/app/)`));

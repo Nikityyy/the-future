@@ -9,8 +9,8 @@
 // the whole app, inside <flutter-view>: every touch lands on it, bubbles on
 // to Flutter as usual, and Flutter decides whether that tap buzzes. A tap
 // handler that calls futureHaptic() while the finger is down arms it; when
-// the finger lifts without that, the switch lets the click through to the
-// app below, so it does not flip and nothing buzzes.
+// the finger lifts without that, the switch's click is cancelled, so it does
+// not flip and nothing buzzes.
 //
 // On iOS that means haptics only for taps, on release: Haptics.selection()
 // while dragging a wheel, or a tick after something finishes, stays silent.
@@ -94,6 +94,13 @@
     });
     layer.addEventListener('focus', function () {
       layer.blur();
+    });
+    // Moving the switch away at pointerup is too late on iOS: the click is
+    // already its own and would flip it, ticking on every touch, background
+    // included. Cancelling the click undoes the flip without the tick.
+    layer.addEventListener('click', function (e) {
+      if (!armed) e.preventDefault();
+      armed = false;
     });
     layer.addEventListener('pointerdown', function (e) {
       if (!e.isPrimary) return;
