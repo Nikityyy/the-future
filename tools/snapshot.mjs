@@ -68,6 +68,34 @@ export function monthlyFrom(operations, assets, now = new Date()) {
 
 const round = (n) => Math.round(n * 100) / 100;
 
+/** Every transaction in a non-cash asset, oldest first: what the Markdown export lists. */
+export function tradesFrom(operations, assets) {
+  const byId = new Map(assets.map((a) => [a.id, a]));
+  const out = [];
+  for (const op of operations) {
+    for (const tx of op.transactions ?? []) {
+      const a = byId.get(tx.asset_id);
+      if (!tx.asset_id || kindOf(a) === 'cash') continue;
+      const amount = num(tx.asset_amount);
+      const rate = num(tx.trade?.rate);
+      const paid = num(tx.trade?.rate_with_fee) || rate;
+      out.push({
+        date: tx.credited_at ?? null,
+        symbol: a?.symbol ?? '',
+        name: a?.name ?? 'Unknown asset',
+        kind: kindOf(a),
+        side: tx.trade ? (tx.flow === 'OUTGOING' ? 'sell' : 'buy') : tx.flow === 'OUTGOING' ? 'out' : 'in',
+        type: tx.transaction_type ?? op.operation_type ?? '',
+        amount,
+        price: tx.trade ? rate : null,
+        value: tx.trade ? round(amount * paid) : null,
+        fee: tx.trade && paid !== rate ? round(Math.abs(amount * (paid - rate))) : null,
+      });
+    }
+  }
+  return out.sort((x, y) => String(x.date).localeCompare(String(y.date)));
+}
+
 export function buildSnapshot({ portfolio, assets, operations, now = new Date() }) {
   return {
     v: 1,
@@ -75,6 +103,7 @@ export function buildSnapshot({ portfolio, assets, operations, now = new Date() 
     currency: 'EUR',
     holdings: holdingsFrom(portfolio, assets),
     monthly: monthlyFrom(operations, assets, now),
+    trades: tradesFrom(operations, assets),
   };
 }
 

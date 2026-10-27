@@ -34,6 +34,36 @@ class Holding {
   double get gainPercent => invested > 0 ? gain / invested * 100 : 0;
 }
 
+/// One transaction as Bitpanda booked it. [price], [value] and [fee] are
+/// only known for trades; [value] is what was paid or received, fees included.
+class Trade {
+  const Trade({required this.date, required this.symbol, required this.name, required this.kind, required this.side, required this.type, required this.amount, this.price, this.value, this.fee});
+
+  factory Trade.fromJson(Map<String, dynamic> j) => Trade(
+        date: j['date'] as String? ?? '',
+        symbol: j['symbol'] as String? ?? '',
+        name: j['name'] as String? ?? '',
+        kind: Kind.values.firstWhere((k) => k.name == j['kind'], orElse: () => Kind.fund),
+        side: j['side'] as String? ?? '',
+        type: j['type'] as String? ?? '',
+        amount: (j['amount'] as num?)?.toDouble() ?? 0,
+        price: (j['price'] as num?)?.toDouble(),
+        value: (j['value'] as num?)?.toDouble(),
+        fee: (j['fee'] as num?)?.toDouble(),
+      );
+
+  final String date; // ISO 8601
+  final String symbol;
+  final String name;
+  final Kind kind;
+  final String side; // buy, sell, in, out
+  final String type;
+  final double amount;
+  final double? price;
+  final double? value;
+  final double? fee;
+}
+
 /// What you put in during one calendar month (sells count as minus).
 class MonthRow {
   const MonthRow(this.month, this.byKind);
@@ -43,7 +73,7 @@ class MonthRow {
 }
 
 class Snapshot {
-  const Snapshot({required this.generatedAt, required this.holdings, required this.monthly});
+  const Snapshot({required this.generatedAt, required this.holdings, required this.monthly, this.trades = const []});
 
   factory Snapshot.fromJson(Map<String, dynamic> j) => Snapshot(
         generatedAt: DateTime.parse(j['generatedAt'] as String),
@@ -56,11 +86,14 @@ class Snapshot {
               Kind.metal: (m['metal'] as num).toDouble(),
             }),
         ],
+        // Snapshots synced before the export existed have no trades.
+        trades: [for (final t in j['trades'] as List? ?? const []) Trade.fromJson(t as Map<String, dynamic>)],
       );
 
   final DateTime generatedAt;
   final List<Holding> holdings;
   final List<MonthRow> monthly;
+  final List<Trade> trades;
 
   double get value => holdings.fold(0, (a, h) => a + h.value);
   double get invested => holdings.fold(0, (a, h) => a + h.invested);

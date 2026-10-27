@@ -26,5 +26,21 @@ Snapshot demoSnapshot([DateTime? now]) {
           );
         }(),
     ],
+    trades: [
+      for (var i = 0; i < 12; i++)
+        for (final (sym, name, kind, eur, price) in [('VWCE', 'FTSE All-World UCITS ETF', Kind.fund, fund[i], 118.0 + i), ('BTC', 'Bitcoin', Kind.crypto, crypto[i], 58000.0 + i * 900)])
+          if (eur > 0)
+            Trade(
+              date: DateTime.utc(now.year, now.month - 11 + i, 3, 9).toIso8601String(),
+              symbol: sym,
+              name: name,
+              kind: kind,
+              side: 'buy',
+              type: 'TRADE',
+              amount: eur / price,
+              price: price,
+              value: eur,
+            ),
+    ],
   );
 }

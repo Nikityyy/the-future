@@ -80,7 +80,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   double get monthly => monthlyOverride ?? usual;
 
-  List<OneOff> get _oneOffsNow {
+  List<OneOff> get oneOffsNow {
     final now = DateTime.now();
     return [
       for (final o in oneOffs)
@@ -98,7 +98,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       months: (yearsAhead ?? years) * 12,
       yearlyReturn: {for (final k in Kind.values) k: returns[k]![scenario]},
       raisePercent: raisePercent,
-      oneOffs: _oneOffsNow,
+      oneOffs: oneOffsNow,
       realTerms: realTerms,
       inflation: inflation,
     );
@@ -114,7 +114,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       months: years * 12,
       yearlyReturn: {for (final k in Kind.values) k: savingsRate},
       raisePercent: raisePercent,
-      oneOffs: _oneOffsNow,
+      oneOffs: oneOffsNow,
       realTerms: realTerms,
       inflation: inflation,
     );

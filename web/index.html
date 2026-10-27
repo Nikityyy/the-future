@@ -86,6 +86,23 @@
         }
       });
     };
+    // The Markdown export: the share sheet where there is one (iPhone: Save to Files,
+    // AirDrop, mail), else a plain download.
+    window.futureSaveFile = function (name, text) {
+      const file = new File([text], name, { type: 'text/markdown' });
+      const download = () => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(file);
+        a.download = name;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      };
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file] }).catch((e) => { if (e.name !== 'AbortError') download(); });
+      } else {
+        download();
+      }
+    };
     let splashHidden = false;
     window.futureHideSplash = function () {
       if (splashHidden) return;

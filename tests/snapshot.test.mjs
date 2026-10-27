@@ -47,6 +47,14 @@ test('sums net buys per month and kind', () => {
   ]);
 });
 
+test('lists every non-cash transaction, oldest first, with its euro value', () => {
+  const s = buildSnapshot({ portfolio, assets, operations, now: new Date('2026-10-27') });
+  assert.equal(s.trades.length, 4);
+  assert.deepEqual(s.trades[0], { date: '2026-08-03T08:00:00Z', symbol: 'VWCE', name: 'FTSE All-World', kind: 'fund', side: 'buy', type: 'TRADE', amount: 1, price: 100, value: 100, fee: null });
+  assert.equal(s.trades[3].side, 'sell');
+  assert.equal(s.trades[3].value, 30);
+});
+
 test('seals so that WebCrypto layout decrypts with the passphrase', () => {
   const sealed = seal({ hello: 'world' }, 'correct horse battery');
   const [salt, iv, ct] = ['salt', 'iv', 'ct'].map((k) => Buffer.from(sealed[k], 'base64'));

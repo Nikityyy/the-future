@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../export.dart';
 import '../format.dart';
 import '../platform/bio.dart';
 import '../platform/haptics.dart';
@@ -60,6 +61,23 @@ class SettingsPage extends StatelessWidget {
                   ],
                 ),
               ),
+              if (state.snapshot != null)
+                SliverToBoxAdapter(
+                  child: Group(
+                    header: 'YOUR DATA',
+                    footer: 'One Markdown file with every holding, every transaction with its date and price, the money you added each month and your plan. Enough on its own for a spreadsheet or an AI to analyse.',
+                    children: [
+                      Row2(
+                        title: 'Export as Markdown',
+                        chevron: true,
+                        onTap: () {
+                          final now = DateTime.now();
+                          saveFile('portfolio-${now.toIso8601String().split('T').first}.md', exportMarkdown(state, now));
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               SliverToBoxAdapter(
                 child: Group(
                   header: 'PRIVACY',

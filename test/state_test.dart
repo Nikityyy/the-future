@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:the_future/export.dart';
 import 'package:the_future/format.dart';
 import 'package:the_future/projection.dart';
 import 'package:the_future/state.dart';
@@ -77,5 +78,19 @@ void main() {
     expect(s.monthly, 1000);
     s.toggleKind(Kind.crypto);
     expect(s.monthly, 50);
+  });
+
+  test('the Markdown export holds every holding and transaction, unmasked', () async {
+    final s = await demo();
+    hideAmounts = true;
+    final md = exportMarkdown(s, DateTime.utc(2026, 10, 27));
+    for (final h in s.snapshot!.holdings) {
+      expect(md, contains('| ${h.name} | ${h.symbol} |'));
+    }
+    final rows = RegExp(r'^\| \d{4}-\d{2}-\d{2} ', multiLine: true).allMatches(md).length;
+    expect(rows, s.snapshot!.trades.length);
+    expect(s.snapshot!.trades, isNotEmpty);
+    expect(md, contains(s.snapshot!.value.toStringAsFixed(2)), reason: 'hiding amounts on screen must not mask the file');
+    expect(md, contains('MADE-UP DEMO NUMBERS'));
   });
 }

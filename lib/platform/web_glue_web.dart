@@ -8,6 +8,15 @@ external JSString _safeArea();
 @JS('futureHideSplash')
 external void _hideSplash();
 
+@JS('futureSaveFile')
+external void _saveFile(JSString name, JSString text);
+
+void saveFile(String name, String text) {
+  try {
+    _saveFile(name.toJS, text.toJS);
+  } catch (_) {}
+}
+
 @JS('skipWaitingAndReload')
 external void _applyUpdate();
 
