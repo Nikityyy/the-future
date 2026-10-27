@@ -134,7 +134,7 @@ String exportMarkdown(AppState state, DateTime now) {
   line('Projected value of the whole portfolio in ${state.years} years (${now.year + state.years}):');
   line();
   table(
-    ['Scenario', 'Value €', 'In today\'s money €', 'Put in €', 'Growth €'],
+    ['Scenario', 'Value €', 'In today\'s money €', 'Today plus all added €', 'Growth €'],
     [
       for (final (i, name) in [(0, 'Cautious'), (1, 'Expected'), (2, 'Hopeful')])
         () {
