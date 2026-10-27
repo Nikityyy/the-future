@@ -28,7 +28,7 @@ a { color: inherit; }
 :focus-visible { outline: 2px solid var(--navy); outline-offset: 3px; border-radius: 6px; }
 
 h1, h2, h3 { font-family: var(--serif); font-weight: 400; margin: 0; letter-spacing: -0.025em; font-variation-settings: "opsz" 72; text-wrap: balance; }
-h1 { font-size: clamp(46px, 8.2vw, 104px); line-height: 0.98; letter-spacing: -0.035em; }
+h1 { font-size: clamp(46px, min(8.2vw, 12.5vh), 104px); line-height: 0.98; letter-spacing: -0.035em; }
 h2 { font-size: clamp(36px, 5.2vw, 64px); line-height: 1.02; }
 h3 { font-size: 26px; line-height: 1.15; letter-spacing: -0.015em; font-variation-settings: "opsz" 36; }
 p { margin: 0; text-wrap: pretty; }
@@ -37,7 +37,8 @@ p { margin: 0; text-wrap: pretty; }
 .wrap { width: min(1160px, 100% - 2 * var(--gutter)); margin-inline: auto; }
 
 /* Header */
-.top { display: flex; align-items: center; justify-content: space-between; padding-block: 22px; }
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding-block: 20px; }
+.brand, .btn { white-space: nowrap; }
 .brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; font: 400 22px/1 var(--serif); letter-spacing: -0.015em; }
 .brand img { width: 32px; height: 32px; }
 
@@ -49,9 +50,9 @@ p { margin: 0; text-wrap: pretty; }
 .link { font-weight: 500; text-underline-offset: 4px; text-decoration-thickness: 1px; }
 
 /* Hero */
-.hero { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: clamp(32px, 6vw, 88px); align-items: center; padding-block: clamp(28px, 6vw, 72px) clamp(56px, 9vw, 120px); }
-.lede { margin-top: 28px; max-width: 34em; font-size: clamp(18px, 2.2vw, 21px); color: var(--ink-2); }
-.actions { margin-top: 36px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px; }
+.hero { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: clamp(32px, 6vw, 88px); align-items: center; padding-block: clamp(12px, 4vh, 72px) clamp(56px, 9vw, 120px); }
+.lede { margin-top: 22px; max-width: 34em; font-size: clamp(18px, 2.2vw, 21px); color: var(--ink-2); }
+.actions { margin-top: 28px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px; }
 .fine { margin-top: 22px; font-size: 15px; color: var(--ink-3); }
 
 .phone { position: relative; width: min(100%, 330px); margin-inline: auto; padding: 11px; border-radius: 56px; background: linear-gradient(145deg, #5a5f69 0%, #2b2f38 18%, #14171d 50%, #2b2f38 82%, #5a5f69 100%); box-shadow: 0 0 0 1px #0b0d11, 0 0 0 2.5px rgba(255, 255, 255, 0.14) inset, 0 2px 0 rgba(255, 255, 255, 0.16) inset, 0 60px 90px -34px rgba(38, 50, 72, 0.5); }
@@ -74,7 +75,7 @@ hr.rule { border: 0; border-top: 1px solid var(--rule); margin: 0; }
 .field output { font-family: var(--serif); font-size: 28px; letter-spacing: -0.02em; }
 fieldset.field { border: 0; margin: 0 0 30px; padding: 0; min-width: 0; }
 .money { display: flex; margin: 0; align-items: center; height: 56px; padding: 0 20px; border-radius: 18px; background: var(--raised); border: 1px solid var(--rule); font-size: 20px; }
-.money input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; color: inherit; padding: 0 0 0 6px; outline: none; }
+.money input { flex: 1; min-width: 0; border: 1px solid transparent; background: transparent; font: inherit; color: inherit; padding: 0 0 0 6px; outline: none; }
 .money:focus-within { outline: 2px solid var(--navy); outline-offset: 2px; }
 input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 36px; background: transparent; cursor: pointer; margin: 0; }
 input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--navy) var(--p, 0%), var(--rule) var(--p, 0%)); }
@@ -125,6 +126,9 @@ footer p { max-width: 62em; }
 .js .rise { opacity: 0; filter: blur(8px); transform: translateY(14px); transition: opacity 1s var(--ease) var(--d, 0s), filter 1s var(--ease) var(--d, 0s), transform 1s var(--ease) var(--d, 0s); }
 .js .rise.in { opacity: 1; filter: none; transform: none; }
 
+@media (min-width: 881px) {
+  .hero .phone { width: min(100%, 330px, calc((100svh - 150px) * 0.46)); min-width: 200px; }
+}
 @media (max-width: 880px) {
   .hero, .calc, .split, .split.flip, .install { grid-template-columns: minmax(0, 1fr); }
   .hero .phone { margin-top: 12px; }
