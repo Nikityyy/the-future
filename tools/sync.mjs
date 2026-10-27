@@ -17,7 +17,11 @@ if (!key || !pass) {
 
 async function get(path, params = {}) {
   const url = new URL(BASE + path);
-  for (const [k, v] of Object.entries(params)) if (v != null) url.searchParams.set(k, v);
+  // An array is sent as a repeated parameter, the way the API describes it.
+  for (const [k, v] of Object.entries(params)) {
+    if (Array.isArray(v)) v.forEach((x) => url.searchParams.append(k, x));
+    else if (v != null) url.searchParams.set(k, v);
+  }
   const res = await fetch(url, { headers: { 'x-api-key': key } });
   if (!res.ok) {
     // The answer is an error message, never your data, so it is safe in the log.
@@ -48,10 +52,28 @@ try {
 }
 
 async function run() {
-const portfolio = (await get('/portfolio')).data ?? [];
+const portfolio = ((await get('/portfolio')).data ?? []).filter((p) => p.asset_id);
 const ids = [...new Set(portfolio.map((p) => p.asset_id))];
 const assets = [];
-for (let i = 0; i < ids.length; i += 25) assets.push(...(await get('/assets', { id: ids.slice(i, i + 25).join(',') })).data);
+let everyAsset;
+for (let i = 0; i < ids.length; i += 25) {
+  const batch = ids.slice(i, i + 25);
+  try {
+    assets.push(...((await get('/assets', { id: batch, page_size: 100 })).data ?? []));
+  } catch (e) {
+    // If the batch is refused, ask for the assets one by one.
+    console.log(`Batch of assets refused (${e.message}); asking one at a time.`);
+    for (const id of batch) {
+      try {
+        assets.push(...((await get('/assets', { id: [id] })).data ?? []));
+      } catch {
+        // Last resort: read the whole asset list once and pick from it.
+        everyAsset ??= await pages('/assets');
+        assets.push(...everyAsset.filter((a) => a.id === id));
+      }
+    }
+  }
+}
 const operations = await pages('/operations');
 
 const snapshot = buildSnapshot({ portfolio, assets, operations });
