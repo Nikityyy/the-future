@@ -41,6 +41,9 @@ class _ShellState extends State<Shell> {
     });
   }
 
+  /// Made once, so switching tabs rebuilds only the bar, never the pages.
+  late final _pages = [PortfolioPage(widget.state), FuturePage(widget.state), SettingsPage(widget.state)];
+
   @override
   void initState() {
     super.initState();
@@ -53,7 +56,7 @@ class _ShellState extends State<Shell> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = [PortfolioPage(widget.state), FuturePage(widget.state), SettingsPage(widget.state)];
+    final pages = _pages;
     return ColoredBox(
       color: C.ground,
       child: Stack(
