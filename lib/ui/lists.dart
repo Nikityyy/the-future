@@ -169,7 +169,7 @@ class _TitleDelegate extends SliverPersistentHeaderDelegate {
     final size = 40 - 20 * t;
     return Container(
       decoration: BoxDecoration(
-        color: C.ground.withValues(alpha: t > 0.05 ? 0.94 : 0),
+        color: C.ground.withValues(alpha: t > 0.05 ? 1 : 0),
         border: Border(bottom: BorderSide(color: C.rule.withValues(alpha: t >= 1 ? 1 : 0), width: 0.5)),
       ),
       padding: EdgeInsets.fromLTRB(24, top, 20, 0),

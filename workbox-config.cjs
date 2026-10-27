@@ -10,7 +10,7 @@ module.exports = {
     '**/*.symbols',
     'canvaskit/skwasm*',
     'canvaskit/wimp*',
-    'canvaskit/webparagraph/**',
+    'canvaskit/experimental_webparagraph/**',
     'canvaskit/chromium/**',
   ],
   swDest: 'build/web/sw.js',

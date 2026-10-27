@@ -51,7 +51,16 @@ class FuturePage extends StatelessWidget {
                         child: Text.rich(
                           TextSpan(children: [
                             TextSpan(text: 'Estimated value in ${state.years} years${state.realTerms ? ', in today’s money' : ''}  '),
-                            const TextSpan(text: 'ⓘ', style: TextStyle(color: C.ink3)),
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.middle,
+                              child: Container(
+                                width: 15,
+                                height: 15,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: C.ink3, width: 1)),
+                                child: Text('i', style: sans(10, weight: FontWeight.w600, color: C.ink3, height: 1)),
+                              ),
+                            ),
                           ]),
                           style: sans(14.5, color: C.ink2),
                           textAlign: TextAlign.center,

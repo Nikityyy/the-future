@@ -176,7 +176,7 @@ class BlurText extends StatelessWidget {
 }
 
 /// A euro amount that counts to its new value.
-class CountUp extends StatelessWidget {
+class CountUp extends StatefulWidget {
   const CountUp(this.value, {super.key, required this.style, this.cents = false, this.duration = const Duration(milliseconds: 650)});
 
   final double value;
@@ -185,22 +185,36 @@ class CountUp extends StatelessWidget {
   final Duration duration;
 
   @override
-  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0, end: value),
-        duration: reducedMotion(context) ? Duration.zero : duration,
-        curve: Curves.easeOutCubic,
-        builder: (context, v, _) => hideAmounts
-            // Hidden: small quiet dots in the place of the big number, same height.
-            ? SizedBox(
-                height: (style.fontSize ?? 16) * (style.height ?? 1.2),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: 1,
-                  child: Text('€•••••', style: style.copyWith(fontSize: (style.fontSize ?? 16) * 0.55, letterSpacing: 6, color: C.ink3)),
-                ),
-              )
-            : Text(eur(v, cents: cents), style: figures(style), maxLines: 1),
-      );
+  State<CountUp> createState() => _CountUpState();
+}
+
+class _CountUpState extends State<CountUp> {
+  bool _built = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // Counts up from zero once. After that, a slider moving the number only
+    // eases it a little: shaping big text on every frame is what made it lag.
+    final first = !_built;
+    _built = true;
+    final style = widget.style;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: widget.value),
+      duration: reducedMotion(context) ? Duration.zero : (first ? widget.duration : const Duration(milliseconds: 90)),
+      curve: Curves.easeOutCubic,
+      builder: (context, v, _) => hideAmounts
+          // Hidden: small quiet dots in the place of the big number, same height.
+          ? SizedBox(
+              height: (style.fontSize ?? 16) * (style.height ?? 1.2),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                widthFactor: 1,
+                child: Text('€•••••', style: style.copyWith(fontSize: (style.fontSize ?? 16) * 0.55, letterSpacing: 6, color: C.ink3)),
+              ),
+            )
+          : Text(eur(v, cents: widget.cents), style: figures(style), maxLines: 1),
+    );
+  }
 }
 
 /// Rounded button: navy and filled, or a quiet outline.

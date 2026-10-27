@@ -225,14 +225,19 @@ class _Painter extends CustomPainter {
     }
   }
 
+  static final _labels = <String, TextPainter>{};
+
   void _dotted(Canvas canvas, Offset a, Offset b, Paint p) {
-    for (var dx = a.dx; dx < b.dx; dx += 4) {
-      canvas.drawLine(Offset(dx, a.dy), Offset(dx + 1.5, a.dy), p);
-    }
+    final dashes = <Offset>[for (var dx = a.dx; dx < b.dx; dx += 4) ...[Offset(dx, a.dy), Offset(dx + 1.5, a.dy)]];
+    canvas.drawPoints(ui.PointMode.lines, dashes, p);
   }
 
   void _text(Canvas canvas, String s, Offset at, Color c, {required int align, bool below = false}) {
-    final tp = TextPainter(text: TextSpan(text: s, style: figures(sans(11.5, color: c))), textDirection: TextDirection.ltr)..layout();
+    if (_labels.length > 120) _labels.clear();
+    final tp = _labels.putIfAbsent(
+      '$s|${c.toARGB32()}',
+      () => TextPainter(text: TextSpan(text: s, style: figures(sans(11.5, color: c))), textDirection: TextDirection.ltr)..layout(),
+    );
     final dx = align == 1 ? at.dx - tp.width : align == 2 ? at.dx - tp.width : at.dx;
     tp.paint(canvas, Offset(dx, below ? at.dy - 2 : at.dy - tp.height / 2));
   }
