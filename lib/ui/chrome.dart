@@ -49,7 +49,8 @@ class Dock extends StatelessWidget {
 }
 
 /// A Liquid Glass sheet that rises over the page and closes with a drag down.
-Future<T?> showSheet<T>(BuildContext context, WidgetBuilder builder) {
+/// [height] makes a short sheet only as tall as it needs, up to the usual 88%.
+Future<T?> showSheet<T>(BuildContext context, WidgetBuilder builder, {double? height}) {
   Haptics.tick();
   return GlassSheet.show<T>(
     context: context,
@@ -59,8 +60,46 @@ Future<T?> showSheet<T>(BuildContext context, WidgetBuilder builder) {
     dragIndicatorColor: C.ink3,
     margin: const EdgeInsets.fromLTRB(6, 0, 6, 6),
     settings: LiquidGlassSettings(glassColor: C.ground.withValues(alpha: 0.9), blur: 18, thickness: 22),
-    builder: (context) => SizedBox(height: MediaQuery.sizeOf(context).height * 0.88, child: builder(context)),
+    builder: (context) {
+      final most = MediaQuery.sizeOf(context).height * 0.88;
+      return SizedBox(height: height == null ? most : (height + browserSafeArea().bottom).clamp(0, most), child: builder(context));
+    },
   );
+}
+
+/// Asks before something that cannot be undone. True when confirmed.
+Future<bool> confirmSheet(BuildContext context, {required String title, required String message, required String action}) async {
+  final ok = await showSheet<bool>(
+    context,
+    height: 270,
+    (context) => Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: serif(28)),
+          const SizedBox(height: 8),
+          Text(message, style: sans(15, color: C.ink2, height: 1.45)),
+          const Spacer(),
+          GlassButton.custom(
+            onTap: () {
+              Haptics.confirm();
+              Navigator.of(context).pop(true);
+            },
+            label: action,
+            width: double.infinity,
+            height: 54,
+            shape: const LiquidRoundedSuperellipse(borderRadius: 27),
+            child: Text(action, style: sans(16, weight: FontWeight.w600, color: C.loss)),
+          ),
+          const SizedBox(height: 10),
+          Center(child: PillButton('Cancel', onTap: () => Navigator.of(context).pop(false))),
+          SizedBox(height: 16 + browserSafeArea().bottom),
+        ],
+      ),
+    ),
+  );
+  return ok ?? false;
 }
 
 /// A full page that slides in from the right, with the iPhone back swipe.
@@ -92,6 +131,37 @@ class BackBar extends StatelessWidget {
             },
           ),
         ),
+      );
+}
+
+/// A pushed page whose back button stays put while the content scrolls
+/// under it, softened by a fade at the top edge.
+class BackPage extends StatelessWidget {
+  const BackPage({super.key, this.onBack, required this.child});
+
+  final VoidCallback? onBack;
+  final Widget child;
+
+  /// Room to leave at the top of the content for the button.
+  static double space() => 62 + browserSafeArea().top;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+        children: [
+          Positioned.fill(child: child),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: Container(
+                height: space(),
+                decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, stops: const [0.55, 1], colors: [C.ground, C.ground.withValues(alpha: 0)])),
+              ),
+            ),
+          ),
+          Positioned(top: 0, left: 0, child: BackBar(onBack: onBack)),
+        ],
       );
 }
 

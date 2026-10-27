@@ -56,7 +56,9 @@ class KindChips extends StatelessWidget {
 }
 
 class KindChip extends StatelessWidget {
-  const KindChip(this.label, this.on, this.onTap, {super.key});
+  const KindChip(this.label, this.on, this.onTap, {super.key, this.compact = false});
+
+  final bool compact;
 
   final String label;
   final bool on;
@@ -66,13 +68,14 @@ class KindChip extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(right: 8),
         child: Center(
+          widthFactor: 1,
           child: GlassChip(
             label: label,
             selected: on,
             quality: GlassQuality.minimal,
             selectedColor: C.navy,
             semanticLabel: label,
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
+            padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 15, vertical: 9),
             labelStyle: sans(14.5, weight: FontWeight.w500, color: on ? C.ground : C.ink),
             onTap: () {
               if (!on) Haptics.selection();

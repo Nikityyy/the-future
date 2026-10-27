@@ -12,6 +12,7 @@ import '../ui/basics.dart' show Spinner;
 import '../ui/chrome.dart';
 import '../ui/lists.dart';
 import '../version.dart';
+import 'connect.dart';
 import 'plan.dart' show Switch2;
 
 class SettingsPage extends StatelessWidget {
@@ -47,15 +48,34 @@ class SettingsPage extends StatelessWidget {
                           state.refresh();
                         },
                       ),
+                      Row2(
+                        title: 'Disconnect and erase',
+                        titleColor: C.loss,
+                        onTap: () async {
+                          final ok = await confirmSheet(context, title: 'Disconnect?', message: 'This erases your PIN, your plan and the sealed portfolio on this phone. Your GitHub copy keeps syncing.', action: 'Disconnect and erase');
+                          if (ok) await state.disconnect();
+                        },
+                      ),
+                    ] else ...[
+                      Row2(title: 'Connect your Bitpanda', chevron: true, onTap: () => showPage<void>(context, (_) => ConnectSheet(state))),
+                      Row2(title: 'Leave the demo', subtitle: 'Back to the start screen', onTap: state.disconnect),
+                    ],
+                  ],
+                ),
+              ),
+              if (live)
+                SliverToBoxAdapter(
+                  child: Group(
+                    header: 'SECURITY',
+                    children: [
                       if (state.bioSupported)
                         Row2(
                           title: 'Unlock with ${Bio.label.toLowerCase() == 'biometrics' ? 'biometrics' : Bio.label}',
                           subtitle: state.hasBio ? 'On. The PIN still works.' : 'Skips the PIN. Needs iOS 18 or later on iPhone.',
                           trailing: _BioSwitch(state),
                         ),
-                      Row2(title: 'Lock now', chevron: true, onTap: state.lock),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(18, 14, 18, 6),
+                        padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -69,13 +89,10 @@ class SettingsPage extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Row2(title: 'Disconnect and erase', titleColor: C.loss, onTap: () => state.disconnect()),
-                    ] else ...[
-                      Row2(title: 'Leave the demo', subtitle: 'Back to the start, to connect Bitpanda', chevron: true, onTap: state.disconnect),
+                      Row2(title: 'Lock now', chevron: true, onTap: state.lock),
                     ],
-                  ],
+                  ),
                 ),
-              ),
               if (state.snapshot != null)
                 SliverToBoxAdapter(
                   child: Group(

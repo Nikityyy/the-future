@@ -152,7 +152,7 @@ class FuturePage extends StatelessWidget {
                   header: 'YOUR PLAN',
                   footer: 'A projection, not a forecast. Before taxes and fees. Not financial advice.',
                   children: [
-                    Row2(title: 'Goal', trailing: Text(state.goal == null ? 'Set one' : '${eur(state.goal!.amount)} by ${state.goal!.year}', style: figures(sans(15, color: C.ink2))), chevron: true, onTap: () => showSheet<void>(context, (_) => GoalSheet(state))),
+                    Row2(title: 'Goal', trailing: Text(state.goal == null ? 'Set one' : '${eur(state.goal!.amount)} by ${state.goal!.year}', style: figures(sans(15, color: C.ink2))), chevron: true, onTap: () => showSheet<void>(context, (_) => GoalSheet(state), height: state.goal == null ? 400 : 450)),
                     Row2(title: 'One-time additions', trailing: Text(state.oneOffs.isEmpty ? 'None' : '${state.oneOffs.length}', style: sans(15, color: C.ink2)), chevron: true, onTap: () => showSheet<void>(context, (_) => OneOffsSheet(state))),
                     Row2(title: 'Assumptions', subtitle: 'Returns, inflation, yearly raise', chevron: true, onTap: () => showSheet<void>(context, (_) => AssumptionsSheet(state))),
                   ],
@@ -262,7 +262,7 @@ class _GoalCard extends StatelessWidget {
       header: 'YOUR GOAL',
       children: [
         Pressable(
-          onTap: () => showSheet<void>(context, (_) => GoalSheet(state)),
+          onTap: () => showSheet<void>(context, (_) => GoalSheet(state), height: state.goal == null ? 400 : 450),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
             child: Column(

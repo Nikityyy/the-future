@@ -93,4 +93,26 @@ void main() {
     expect(md, contains(s.snapshot!.value.toStringAsFixed(2)), reason: 'hiding amounts on screen must not mask the file');
     expect(md, contains('MADE-UP DEMO NUMBERS'));
   });
+
+  test('a goal says what monthly amount gets there, and that amount does', () async {
+    final s = await demo();
+    final year = DateTime.now().year + 10;
+    s.setPlan(goal: (amount: 500000.0, year: year));
+    final need = s.monthlyForGoal()!;
+    expect(need, greaterThan(s.monthly), reason: '€500k in ten years needs more than the demo adds');
+    expect(s.projectionFor(s.scenario, monthlyAmount: need, months: s.goalMonths).end, closeTo(500000, 1));
+    s.setPlan(monthly: need + 1);
+    expect(s.goalReachedIn(), lessThanOrEqualTo(year));
+    s.setPlan(goal: (amount: 1000.0, year: year));
+    expect(s.monthlyForGoal(), 0, reason: 'already there');
+  });
+
+  test('history change leaves out money added in the period', () async {
+    final s = await demo();
+    final t = s.snapshot!.trades.last;
+    final at = DateTime.parse(t.date);
+    final sameDay = s.snapshot!.trades.where((x) => x.date == t.date).fold(0.0, (a, x) => a + x.value!);
+    expect(s.snapshot!.netAddedBetween(at.subtract(const Duration(days: 1)), at.add(const Duration(days: 1))), sameDay);
+    expect(s.snapshot!.netAddedBetween(at.add(const Duration(days: 1)), at.add(const Duration(days: 2))), 0);
+  });
 }

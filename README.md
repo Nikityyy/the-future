@@ -7,10 +7,12 @@
 
 ## What it does
 
-- **Portfolio.** Total value, what you put in and what it returned, split into funds and stocks, crypto and metals. Filter by any mix of them; the choice is remembered. An eye hides every amount.
-- **Future.** A growth curve with a cautious, an expected and a hopeful case, a ruler for what you add each month, one-time additions ("€2,000 in March"), a yearly raise, and an inflation switch to read the result in today's money. The same filter applies, so you can ask what just your ETFs will be worth.
+- **Portfolio.** Total value, what you put in and what it returned, and how the value moved over a day, week, month, six months, a year or all time (Bitpanda's own history; the change leaves out money you added). Split into funds and stocks, crypto and metals, with a filter that is remembered. Tap a holding for your average buy price, the price now and every transaction in it. An eye hides every amount.
+- **Future.** A growth curve with a cautious, an expected and a hopeful case, a ruler for what you add each month, one-time additions ("€2,000 in March") and a yearly raise. The result shows what your account will say and what that is worth in today's money, and when you pass round amounts like €100k.
+- **Goal.** Set an amount and a year: the app says whether your plan gets there, and what monthly amount it takes if not.
+- **Export.** One Markdown file with every holding, every transaction and your plan, enough for a spreadsheet or an AI to analyse.
 - **Starting point from your trades.** The monthly amount starts at your average net buying over the last six months. Change it and everything moves.
-- **Lock.** A six digit PIN, or Face ID, Touch ID or a fingerprint. The app locks itself two minutes after you leave it.
+- **Lock.** A six digit PIN, or Face ID, Touch ID or a fingerprint. The app locks itself when you have been away for as long as you choose: always, 2 minutes, 15 minutes or an hour.
 - Pull to refresh, bouncing scroll, sheets that push the page back, haptics on iPhone and Android, offline after the first visit.
 
 ## How it stays private
@@ -35,13 +37,13 @@ Bitpanda  <-- read-only key, in a GitHub secret --  GitHub Actions (every 3 hour
 
 ## Set it up
 
-1. Fork this repository. In **Settings, Pages**, set the source to **GitHub Actions**.
+1. Fork this repository. In **Settings, Pages**, set the source to **GitHub Actions**, and allow workflows in the **Actions** tab. Your app lives at `yourname.github.io/the-future/app/`.
 2. In Bitpanda, **Account, API keys**, create a key with the **Read** scope only.
 3. In your fork, **Settings, Secrets and variables, Actions**, add:
    - `BITPANDA_API_KEY`: the key
    - `SYNC_PASSPHRASE`: a passphrase of at least 12 characters
-4. Run **Actions, Test and deploy to GitHub Pages, Run workflow** once. After that it runs every three hours and on every push to `main`.
-5. Open the app, tap **Connect Bitpanda**, enter the passphrase, choose a PIN.
+4. Run **Actions, Test and deploy to GitHub Pages, Run workflow** once. After that it runs every three hours and on every push to `main`. Each run also keeps the value history from the last one, so it reaches back further than Bitpanda's one year.
+5. Open your copy of the app, tap **Connect Bitpanda**, enter the passphrase, choose a PIN.
 
 Without the two secrets the workflow still deploys; the app then offers the demo with made-up numbers.
 

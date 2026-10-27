@@ -21,60 +21,89 @@ class AssetPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final trades = [for (final t in s.trades.reversed) if (t.symbol == h.symbol && t.name == h.name) t];
+    final trades = [
+      for (final t in s.trades.reversed)
+        if (t.symbol == h.symbol && t.name == h.name) t,
+    ];
     final avg = h.amount > 0 ? h.invested / h.amount : 0.0;
     final now = h.amount > 0 ? h.value / h.amount : 0.0;
     final share = s.value > 0 ? h.value / s.value * 100 : 0.0;
     final up = h.gain >= 0;
     String unit(double v) => eur(v, cents: v < 1000);
 
-    return CustomScrollView(
-      slivers: [
-        const SliverToBoxAdapter(child: BackBar()),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return BackPage(
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(child: SizedBox(height: BackPage.space())),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${h.symbol}  ·  ${kindNames[h.kind]}', style: sans(14, color: C.ink2)),
+                  const SizedBox(height: 4),
+                  BlurText(h.name, style: serif(34, height: 1.05)),
+                  const SizedBox(height: 18),
+                  CountUp(h.value, style: serif(56, tracking: -1.8)),
+                  const SizedBox(height: 8),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '${signedEur(h.gain)}  (${percent(h.gainPercent)})',
+                          style: figures(sans(15, weight: FontWeight.w500, color: up ? C.greenInk : C.loss)),
+                        ),
+                        TextSpan(
+                          text: '  on ${eur(h.invested)} invested',
+                          style: figures(sans(15, color: C.ink2)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Group(
+              header: 'YOUR POSITION',
+              footer: avg <= 0 ? null : 'The price now is ${percent((now / avg - 1) * 100, sign: false)} ${now >= avg ? 'above' : 'below'} what you paid on average.',
               children: [
-                Text('${h.symbol}  ·  ${kindNames[h.kind]}', style: sans(14, color: C.ink2)),
-                const SizedBox(height: 4),
-                BlurText(h.name, style: serif(34, height: 1.05)),
-                const SizedBox(height: 18),
-                CountUp(h.value, style: serif(56, tracking: -1.8)),
-                const SizedBox(height: 8),
-                Text.rich(TextSpan(children: [
-                  TextSpan(text: '${signedEur(h.gain)}  (${percent(h.gainPercent)})', style: figures(sans(15, weight: FontWeight.w500, color: up ? C.greenInk : C.loss))),
-                  TextSpan(text: '  on ${eur(h.invested)} invested', style: figures(sans(15, color: C.ink2))),
-                ])),
+                Row2(
+                  title: 'You own',
+                  trailing: Text('${amountOf(h.amount)} ${h.symbol}', style: figures(sans(16))),
+                ),
+                Row2(
+                  title: 'Average buy price',
+                  subtitle: 'Per unit, fees included',
+                  trailing: Text(unit(avg), style: figures(sans(16))),
+                ),
+                Row2(
+                  title: 'Price now',
+                  subtitle: 'Per unit, at the last sync',
+                  trailing: Text(unit(now), style: figures(sans(16))),
+                ),
+                Row2(
+                  title: 'Share of your portfolio',
+                  trailing: Text('${share.toStringAsFixed(1)}%', style: figures(sans(16))),
+                ),
               ],
             ),
           ),
-        ),
-        SliverToBoxAdapter(
-          child: Group(
-            header: 'YOUR POSITION',
-            footer: avg <= 0 ? null : 'The price now is ${percent((now / avg - 1) * 100, sign: false)} ${now >= avg ? 'above' : 'below'} what you paid on average.',
-            children: [
-              Row2(title: 'You own', trailing: Text('${amountOf(h.amount)} ${h.symbol}', style: figures(sans(16)))),
-              Row2(title: 'Average buy price', subtitle: 'Per unit, fees included', trailing: Text(unit(avg), style: figures(sans(16)))),
-              Row2(title: 'Price now', subtitle: 'Per unit, at the last sync', trailing: Text(unit(now), style: figures(sans(16)))),
-              Row2(title: 'Share of your portfolio', trailing: Text('${share.toStringAsFixed(1)}%', style: figures(sans(16)))),
-            ],
+          SliverToBoxAdapter(
+            child: Group(
+              header: trades.isEmpty ? 'TRANSACTIONS' : 'TRANSACTIONS (${trades.length})',
+              footer: trades.isEmpty ? 'Transactions show up after the next sync from Bitpanda.' : null,
+              children: [
+                if (trades.isEmpty) const Row2(title: 'None yet'),
+                for (final t in trades) _TradeRow(t),
+              ],
+            ),
           ),
-        ),
-        SliverToBoxAdapter(
-          child: Group(
-            header: trades.isEmpty ? 'TRANSACTIONS' : 'TRANSACTIONS (${trades.length})',
-            footer: trades.isEmpty ? 'Transactions show up after the next sync from Bitpanda.' : null,
-            children: [
-              if (trades.isEmpty) const Row2(title: 'None yet'),
-              for (final t in trades) _TradeRow(t),
-            ],
-          ),
-        ),
-        SliverToBoxAdapter(child: SizedBox(height: 40 + browserSafeArea().bottom)),
-      ],
+          SliverToBoxAdapter(child: SizedBox(height: 40 + browserSafeArea().bottom)),
+        ],
+      ),
     );
   }
 }

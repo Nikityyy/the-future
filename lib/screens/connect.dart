@@ -93,66 +93,75 @@ class _ConnectSheetState extends State<ConnectSheet> {
   }
 
   /// The passphrase on a page of its own: the field sits at the top, well above the keyboard.
-  Widget _entry() => CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(child: BackBar(onBack: () => setState(() => _entering = false))),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 6, 24, 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Your passphrase', style: serif(40)),
-                  const SizedBox(height: 10),
-                  Text('The SYNC_PASSPHRASE you saved as a GitHub secret. It opens your sealed portfolio on this phone.', style: sans(15, color: C.ink2, height: 1.45)),
-                ],
-              ),
+  Widget _entry() => BackPage(
+    onBack: () => setState(() => _entering = false),
+    child: CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(child: SizedBox(height: BackPage.space())),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 6, 24, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Your passphrase', style: serif(40)),
+                const SizedBox(height: 10),
+                Text('The SYNC_PASSPHRASE you saved as a GitHub secret. It opens your sealed portfolio on this phone.', style: sans(15, color: C.ink2, height: 1.45)),
+              ],
             ),
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GlassPasswordField(
-                          controller: _field,
-                          autofocus: true,
-                          placeholder: 'Passphrase',
-                          placeholderStyle: sans(16, color: C.ink3),
-                          textStyle: sans(16),
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                          shape: const LiquidRoundedSuperellipse(borderRadius: 22),
-                          onSubmitted: (_) => _check(),
-                        ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: GlassPasswordField(
+                        controller: _field,
+                        autofocus: true,
+                        placeholder: 'Passphrase',
+                        placeholderStyle: sans(16, color: C.ink3),
+                        textStyle: sans(16),
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                        shape: const LiquidRoundedSuperellipse(borderRadius: 22),
+                        onSubmitted: (_) => _check(),
                       ),
-                      const SizedBox(width: 10),
-                      PillButton('Paste', onTap: _paste),
-                    ],
+                    ),
+                    const SizedBox(width: 10),
+                    PillButton('Paste', onTap: _paste),
+                  ],
+                ),
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
+                    child: Text(_error!, style: sans(13.5, color: C.loss, height: 1.4)),
                   ),
-                  if (_error != null) Padding(padding: const EdgeInsets.fromLTRB(4, 10, 4, 0), child: Text(_error!, style: sans(13.5, color: C.loss, height: 1.4))),
-                  const SizedBox(height: 18),
-                  AppButton('Open my portfolio', busy: _busy, onTap: _check),
-                ],
-              ),
+                const SizedBox(height: 18),
+                AppButton('Open my portfolio', busy: _busy, onTap: _check),
+              ],
             ),
           ),
-          SliverToBoxAdapter(child: SizedBox(height: 40 + MediaQuery.viewInsetsOf(context).bottom)),
-        ],
-      );
+        ),
+        SliverToBoxAdapter(child: SizedBox(height: 40 + MediaQuery.viewInsetsOf(context).bottom)),
+      ],
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
     if (_passphrase != null) {
       return Column(
         children: [
-          BackBar(onBack: () => setState(() {
-            _passphrase = null;
-            _firstPin = null;
-          })),
+          BackBar(
+            onBack: () => setState(() {
+              _passphrase = null;
+              _firstPin = null;
+            }),
+          ),
           Expanded(
             child: PinPad(
               key: ValueKey(_firstPin == null),
@@ -165,66 +174,75 @@ class _ConnectSheetState extends State<ConnectSheet> {
       );
     }
     if (_entering) return _entry();
-    return CustomScrollView(
-      slivers: [
-        const SliverToBoxAdapter(child: BackBar()),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 6, 24, 22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                BlurText('Connect Bitpanda', style: serif(40)),
-                const SizedBox(height: 10),
-                Text('Your own free copy of The Future on GitHub reads your portfolio, seals it, and publishes only the sealed file. Your key never touches this phone.', style: sans(15, color: C.ink2, height: 1.45)),
-              ],
+    return BackPage(
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(child: SizedBox(height: BackPage.space())),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 6, 24, 22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  BlurText('Connect Bitpanda', style: serif(40)),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Your own free copy of The Future on GitHub reads your portfolio, seals it, and publishes only the sealed file. Your key never touches this phone.',
+                    style: sans(15, color: C.ink2, height: 1.45),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        // Only the original site: everyone else needs a copy of their own first.
-        if (AppVersion.repo == AppVersion.upstream)
+          // Only the original site: everyone else needs a copy of their own first.
+          if (AppVersion.repo == AppVersion.upstream)
+            SliverToBoxAdapter(
+              child: Group(
+                header: 'FIRST TIME? MAKE YOUR OWN COPY',
+                footer:
+                    'In your copy: under Settings, Pages, set Source to GitHub Actions, and allow workflows in the Actions tab. Then open yourname.github.io/the-future/app and connect from there.',
+                children: [
+                  Row2(title: 'Copy The Future to your GitHub', subtitle: 'A fork. Free, takes a minute', chevron: true, onTap: () => _open('https://github.com/${AppVersion.upstream}/fork')),
+                ],
+              ),
+            ),
           SliverToBoxAdapter(
             child: Group(
-              header: 'FIRST TIME? MAKE YOUR OWN COPY',
-              footer: 'In your copy on GitHub: Settings, Pages, set Source to GitHub Actions, and allow workflows in the Actions tab. Your app then lives at yourname.github.io/the-future/app. Open it there, add it to your Home Screen, and do the steps below in it.',
+              header: 'STEP 1',
+              footer: 'Give the key the Read scope only. Without Trade it cannot buy, sell or withdraw anything.',
+              children: [Row2(title: 'Create a read-only API key', subtitle: 'In Bitpanda: Account, API keys', chevron: true, onTap: () => _open('https://app.bitpanda.com/my-account/apikey'))],
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Group(
+              header: 'STEP 2',
+              footer:
+                  'Add two repository secrets: BITPANDA_API_KEY (the key) and SYNC_PASSPHRASE (a long passphrase of your own, 12 characters or more, such as four random words). Then run the workflow once.',
               children: [
-                Row2(title: 'Copy The Future to your GitHub', subtitle: 'A fork. Free, takes a minute', chevron: true, onTap: () => _open('https://github.com/${AppVersion.upstream}/fork')),
+                Row2(title: 'Open your repository secrets', subtitle: 'Settings, Secrets and variables, Actions', chevron: true, onTap: () => _open('$_repo/settings/secrets/actions')),
+                Row2(title: 'Run the workflow', subtitle: 'Actions, Test and deploy, Run workflow', chevron: true, onTap: () => _open('$_repo/actions/workflows/pages.yml')),
               ],
             ),
           ),
-        SliverToBoxAdapter(
-          child: Group(
-            header: 'STEP 1',
-            footer: 'Give the key the Read scope only. Without Trade it cannot buy, sell or withdraw anything.',
-            children: [
-              Row2(title: 'Create a read-only API key', subtitle: 'In Bitpanda: Account, API keys', chevron: true, onTap: () => _open('https://app.bitpanda.com/my-account/apikey')),
-            ],
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Group(
-            header: 'STEP 2',
-            footer: 'Add two repository secrets: BITPANDA_API_KEY (the key) and SYNC_PASSPHRASE (a long passphrase of your own, 12 characters or more, such as four random words). Then run the workflow once.',
-            children: [
-              Row2(title: 'Open your repository secrets', subtitle: 'Settings, Secrets and variables, Actions', chevron: true, onTap: () => _open('$_repo/settings/secrets/actions')),
-              Row2(title: 'Run the workflow', subtitle: 'Actions, Test and deploy, Run workflow', chevron: true, onTap: () => _open('$_repo/actions/workflows/pages.yml')),
-            ],
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-            child: Column(
-              children: [
-                AppButton('Continue', onTap: () => setState(() => _entering = true)),
-                const SizedBox(height: 10),
-                Text('Done steps 1 and 2? Next you enter your passphrase.', style: sans(13, color: C.ink2), textAlign: TextAlign.center),
-              ],
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+              child: Column(
+                children: [
+                  AppButton('Continue', onTap: () => setState(() => _entering = true)),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Done steps 1 and 2? Next you enter your passphrase.',
+                    style: sans(13, color: C.ink2),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        SliverToBoxAdapter(child: SizedBox(height: 40 + browserSafeArea().bottom)),
-      ],
+          SliverToBoxAdapter(child: SizedBox(height: 40 + browserSafeArea().bottom)),
+        ],
+      ),
     );
   }
 }

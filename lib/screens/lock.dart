@@ -6,6 +6,7 @@ import '../platform/web_glue.dart';
 import '../state.dart';
 import '../theme.dart';
 import '../ui/basics.dart';
+import '../ui/chrome.dart' show confirmSheet;
 import '../ui/mark.dart';
 
 /// Six dots and a keypad. [onDone] says whether the PIN was accepted.
@@ -240,7 +241,10 @@ class _LockScreenState extends State<LockScreen> {
               onDone: _try,
               onBio: widget.state.hasBio ? widget.state.unlockWithBio : null,
               footer: Pressable(
-                onTap: () => widget.state.disconnect(),
+                onTap: () async {
+                  final ok = await confirmSheet(context, title: 'Disconnect?', message: 'This erases your PIN and the sealed portfolio on this phone. You can connect again with your passphrase.', action: 'Disconnect and erase');
+                  if (ok) await widget.state.disconnect();
+                },
                 child: Text('Forgot PIN? Disconnect', style: sans(14, color: C.ink2)),
               ),
             ),

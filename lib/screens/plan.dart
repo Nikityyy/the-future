@@ -11,7 +11,7 @@ import '../ui/basics.dart';
 import '../ui/chrome.dart';
 import '../ui/lists.dart';
 import '../ui/ruler.dart';
-import '../ui/filter.dart' show kindNames;
+import '../ui/filter.dart' show KindChip, kindNames;
 
 class _Stepper extends StatelessWidget {
   const _Stepper({required this.text, required this.onMinus, required this.onPlus});
@@ -216,74 +216,90 @@ class GoalSheet extends StatefulWidget {
 }
 
 class _GoalSheetState extends State<GoalSheet> {
+  static const _marks = [10e3, 25e3, 50e3, 100e3, 250e3, 500e3, 1e6, 2.5e6, 5e6, 10e6];
+
+  /// Four round amounts just above what you have now.
+  late final _picks = () {
+    final v = widget.state.snapshot?.value ?? 0;
+    final i = _marks.indexWhere((m) => m >= v * 1.2);
+    final from = i < 0 ? _marks.length - 4 : i.clamp(0, _marks.length - 4);
+    return _marks.sublist(from, from + 4);
+  }();
+
   late double _amount = widget.state.goal?.amount ?? _suggest();
   late int _year = widget.state.goal?.year ?? DateTime.now().year + 10;
 
   /// A round number a good way above today's value.
   double _suggest() {
     final v = widget.state.snapshot?.value ?? 0;
-    for (final m in [10e3, 25e3, 50e3, 100e3, 250e3, 500e3, 1e6]) {
-      if (m >= v * 1.5) return m;
-    }
-    return 2e6;
+    return _marks.firstWhere((m) => m >= v * 1.5, orElse: () => _marks.last);
   }
+
+  /// Steps that fit the size of the number: 5k up to 100k, then 25k, then 100k.
+  void _nudge(int dir) {
+    final up = dir > 0;
+    final base = up ? _amount : _amount - 1;
+    final step = base < 100e3 ? 5e3 : base < 500e3 ? 25e3 : 100e3;
+    final next = ((_amount + dir * step) / step).round() * step;
+    setState(() => _amount = next.clamp(5e3, 10e6).toDouble());
+  }
+
+  static String _short(double v) => v >= 1e6 ? '€${(v / 1e6).toStringAsFixed(v % 1e6 == 0 ? 0 : 1)}M' : '€${(v / 1e3).round()}k';
 
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now().year;
     final had = widget.state.goal != null;
-    return CustomScrollView(
-      controller: SheetScroll.of(context),
-      slivers: [
-        const SliverToBoxAdapter(child: SheetHeader('Your goal')),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 4, 24, 22),
-            child: Text('What you want to have, and by when. The Future page then tells you whether your plan gets there, and what it takes if not.', style: sans(15, color: C.ink2, height: 1.45)),
-          ),
+    return ListView(
+      padding: EdgeInsets.only(bottom: 24 + browserSafeArea().bottom),
+      children: [
+        const SheetHeader('Your goal', action: 'Cancel'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 18),
+          child: Text('What you want to have, and by when.', style: sans(15, color: C.ink2, height: 1.45)),
         ),
-        SliverToBoxAdapter(
-          child: Group(
-            header: 'AMOUNT',
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 10, bottom: 6),
-                child: RulerSlider(label: 'Goal amount', value: _amount, min: 5000, max: 2000000, step: 5000, onChanged: (v) => setState(() => _amount = v)),
-              ),
-            ],
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Group(
-            header: 'BY THE END OF',
-            children: [
-              Row2(title: 'Year', trailing: _Stepper(text: '$_year', onMinus: () => setState(() => _year = (_year - 1).clamp(now + 1, now + 60)), onPlus: () => setState(() => _year = (_year + 1).clamp(now + 1, now + 60)))),
-            ],
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: AppButton('Save ${eur(_amount)} by $_year', onTap: () {
-              Haptics.confirm();
-              widget.state.setPlan(goal: (amount: _amount, year: _year));
-              Navigator.of(context).maybePop();
-            }),
-          ),
-        ),
-        if (had)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Center(
-                child: PillButton('Remove the goal', onTap: () {
-                  widget.state.setPlan(goal: null);
-                  Navigator.of(context).maybePop();
-                }),
+        Group(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 18, 14, 16),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      _Round('−', () => _nudge(-1)),
+                      Expanded(child: Text(eur(_amount, mask: false), textAlign: TextAlign.center, style: figures(serif(40, tracking: -1)))),
+                      _Round('+', () => _nudge(1)),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [for (final v in _picks) KindChip(_short(v), _amount == v, () => setState(() => _amount = v), compact: true)],
+                  ),
+                ],
               ),
             ),
+            Row2(title: 'By the end of', trailing: _Stepper(text: '$_year', onMinus: () => setState(() => _year = (_year - 1).clamp(now + 1, now + 60)), onPlus: () => setState(() => _year = (_year + 1).clamp(now + 1, now + 60)))),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: AppButton('Save goal', onTap: () {
+            Haptics.confirm();
+            widget.state.setPlan(goal: (amount: _amount, year: _year));
+            Navigator.of(context).maybePop();
+          }),
+        ),
+        if (had)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Center(
+              child: PillButton('Remove goal', onTap: () {
+                widget.state.setPlan(goal: null);
+                Navigator.of(context).maybePop();
+              }),
+            ),
           ),
-        SliverToBoxAdapter(child: SizedBox(height: 40 + browserSafeArea().bottom)),
       ],
     );
   }
