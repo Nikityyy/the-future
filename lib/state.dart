@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'demo.dart';
+import 'format.dart' as fmt;
 import 'platform/bio.dart';
 import 'projection.dart';
 import 'snapshot.dart';
@@ -50,11 +51,26 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   Returns returns = {for (final e in defaultReturns.entries) e.key: [...e.value]};
   List<OneOffEntry> oneOffs = [];
 
+  /// Which asset kinds the Portfolio and Future pages show. Empty means all.
+  Set<Kind> filter = {};
+
+  /// Amounts show as dots.
+  bool hide = false;
+
   static const autoLock = Duration(minutes: 2);
 
   bool get ready => snapshot != null && !locked;
 
-  double get monthly => monthlyOverride ?? snapshot?.usualMonthlyTotal.roundToDouble() ?? 0;
+  /// The kinds in use: the filter, limited to what the portfolio holds.
+  Set<Kind> get active {
+    final present = snapshot?.kinds ?? Kind.values.toSet();
+    final f = filter.intersection(present);
+    return f.isEmpty ? present : f;
+  }
+
+  double get usual => snapshot?.usualFor(active).roundToDouble() ?? 0;
+
+  double get monthly => monthlyOverride ?? usual;
 
   List<OneOff> get _oneOffsNow {
     final now = DateTime.now();
@@ -68,8 +84,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   Projection projectionFor(int scenario, {double? monthlyAmount, int? yearsAhead}) {
     final s = snapshot!;
     return project(
-      start: {for (final k in Kind.values) k: s.valueOf(k)},
-      mix: s.mix,
+      start: {for (final k in active) k: s.valueOf(k)},
+      mix: s.mixFor(active),
       monthly: monthlyAmount ?? monthly,
       months: (yearsAhead ?? years) * 12,
       yearlyReturn: {for (final k in Kind.values) k: returns[k]![scenario]},
@@ -209,6 +225,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     error = null;
     monthlyOverride = null;
     oneOffs = [];
+    filter = {};
+    hide = fmt.hideAmounts = false;
     realTerms = false;
     raisePercent = 0;
     inflation = defaultInflation;
@@ -226,6 +244,29 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   // The plan, saved.
 
   static const _keep = Object();
+
+  void toggleKind(Kind k) {
+    final all = snapshot?.kinds ?? Kind.values.toSet();
+    // From "all", a tap picks just that kind; after that taps add and remove.
+    final next = filter.isEmpty ? {k} : {...active};
+    if (filter.isNotEmpty && !next.remove(k)) next.add(k);
+    // Nothing left, or everything: back to "all".
+    filter = next.isEmpty || next.length == all.length ? {} : next;
+    _save();
+    notifyListeners();
+  }
+
+  void showAllKinds() {
+    filter = {};
+    _save();
+    notifyListeners();
+  }
+
+  void setHide(bool v) {
+    hide = fmt.hideAmounts = v;
+    _save();
+    notifyListeners();
+  }
 
   void setPlan({
     Object? monthly = _keep,
@@ -246,18 +287,24 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     this.returns = returns ?? this.returns;
     this.oneOffs = oneOffs ?? this.oneOffs;
     notifyListeners();
+    _save();
+  }
+
+  void _save() {
     _prefs.setString(
       'plan',
       jsonEncode({
+        'filter': [for (final k in filter) k.name],
+        'hide': hide,
         'monthly': monthlyOverride,
-        'years': this.years,
-        'scenario': this.scenario,
-        'real': this.realTerms,
-        'raise': this.raisePercent,
-        'inflation': this.inflation,
-        'returns': {for (final e in this.returns.entries) e.key.name: e.value},
+        'years': years,
+        'scenario': scenario,
+        'real': realTerms,
+        'raise': raisePercent,
+        'inflation': inflation,
+        'returns': {for (final e in returns.entries) e.key.name: e.value},
         'oneOffs': [
-          for (final o in this.oneOffs) [o.year, o.month, o.amount],
+          for (final o in oneOffs) [o.year, o.month, o.amount],
         ],
       }),
     );
@@ -267,6 +314,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     try {
       final j = jsonDecode(_prefs.getString('plan') ?? '{}') as Map<String, dynamic>;
       monthlyOverride = (j['monthly'] as num?)?.toDouble();
+      filter = {for (final n in (j['filter'] as List? ?? [])) Kind.values.byName(n as String)};
+      hide = fmt.hideAmounts = j['hide'] as bool? ?? false;
       years = j['years'] as int? ?? years;
       scenario = j['scenario'] as int? ?? scenario;
       realTerms = j['real'] as bool? ?? false;

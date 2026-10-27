@@ -7,6 +7,7 @@ import '../theme.dart';
 import '../ui/basics.dart';
 import '../ui/chart.dart';
 import '../ui/chrome.dart';
+import '../ui/filter.dart';
 import '../ui/lists.dart';
 import '../ui/ruler.dart';
 import 'plan.dart';
@@ -28,14 +29,15 @@ class FuturePage extends StatelessWidget {
           final low = state.projectionFor(0);
           final mid = state.projectionFor(state.scenario);
           final high = state.projectionFor(2);
-          final usual = s.usualMonthlyTotal.roundToDouble();
+          final usual = state.usual;
           final changed = state.monthlyOverride != null && state.monthlyOverride != usual;
           final now = DateTime.now();
           final step = (state.years * 12 / 120).ceil();
           List<double> thin(List<double> v) => [for (var i = 0; i < v.length; i += step) v[i], if ((v.length - 1) % step != 0) v.last];
           return CustomScrollView(
             slivers: [
-              const LargeTitle('Future'),
+              LargeTitle('Future', trailing: EyeButton(state)),
+              SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.only(top: 6), child: KindChips(state))),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(24, 16, 24, 6),
@@ -145,7 +147,7 @@ class FuturePage extends StatelessWidget {
       );
 
   static String _rate(AppState s) {
-    final mix = s.snapshot!.mix;
+    final mix = s.snapshot!.mixFor(s.active);
     var r = 0.0;
     for (final e in mix.entries) {
       r += e.value * s.returns[e.key]![s.scenario];

@@ -69,6 +69,21 @@ class Snapshot {
 
   double valueOf(Kind k) => holdings.where((h) => h.kind == k).fold(0, (a, h) => a + h.value);
 
+  Set<Kind> get kinds => {for (final h in holdings) h.kind};
+
+  /// Usual monthly amount for just these kinds.
+  double usualFor(Set<Kind> kinds) => kinds.fold(0.0, (a, k) => a + usualMonthly[k]!);
+
+  /// How new money splits across just these kinds.
+  Map<Kind, double> mixFor(Set<Kind> kinds) {
+    final m = mix;
+    final total = kinds.fold(0.0, (a, k) => a + (m[k] ?? 0));
+    if (total > 0) return {for (final k in kinds) k: (m[k] ?? 0) / total};
+    final v = kinds.fold(0.0, (a, k) => a + valueOf(k));
+    if (v > 0) return {for (final k in kinds) k: valueOf(k) / v};
+    return {kinds.first: 1};
+  }
+
   /// Average net amount added per month over the last six months before the
   /// snapshot, by kind. A month without a purchase counts as zero.
   Map<Kind, double> get usualMonthly {

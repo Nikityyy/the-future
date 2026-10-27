@@ -10,7 +10,7 @@ import '../ui/basics.dart';
 import '../ui/chrome.dart';
 import '../ui/lists.dart';
 import '../ui/ruler.dart';
-import 'portfolio.dart' show kindNames;
+import '../ui/filter.dart' show kindNames;
 
 class _Stepper extends StatelessWidget {
   const _Stepper({required this.text, required this.onMinus, required this.onPlus});

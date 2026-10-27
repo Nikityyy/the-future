@@ -76,9 +76,9 @@ class _RulerSliderState extends State<RulerSlider> {
         return Semantics(
           slider: true,
           label: widget.label,
-          value: eur(widget.value),
-          increasedValue: eur(math.min(widget.max, widget.value + widget.step)),
-          decreasedValue: eur(math.max(widget.min, widget.value - widget.step)),
+          value: eur(widget.value, mask: false),
+          increasedValue: eur(math.min(widget.max, widget.value + widget.step), mask: false),
+          decreasedValue: eur(math.max(widget.min, widget.value - widget.step), mask: false),
           onIncrease: () => widget.onChanged(math.min(widget.max, widget.value + widget.step)),
           onDecrease: () => widget.onChanged(math.max(widget.min, widget.value - widget.step)),
           child: SizedBox(
@@ -117,7 +117,7 @@ class _RulerSliderState extends State<RulerSlider> {
                     height: 32,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(color: C.navy, borderRadius: BorderRadius.circular(9)),
-                    child: Text(eur(cur), style: figures(sans(15, weight: FontWeight.w600, color: C.ground))),
+                    child: Text(eur(cur, mask: false), style: figures(sans(15, weight: FontWeight.w600, color: C.ground))),
                   ),
                 ),
               ],
@@ -152,7 +152,7 @@ class _TicksPainter extends CustomPainter {
       canvas.drawLine(Offset(x, 6), Offset(x, big ? 24 : 16), big ? major : minor);
       if (i % 5 == 0 && i % 10 == 0 || (i % 5 == 0 && count < 40)) {
         final tp = TextPainter(
-          text: TextSpan(text: eur(min + i * step), style: figures(sans(12, color: C.ink3))),
+          text: TextSpan(text: eur(min + i * step, mask: false), style: figures(sans(12, color: C.ink3))),
           textDirection: TextDirection.ltr,
         )..layout();
         tp.paint(canvas, Offset(x - tp.width / 2, 34));

@@ -114,7 +114,7 @@ class _Painter extends CustomPainter {
     return 10 * e;
   }
 
-  static String _short(double v) => v >= 1e6 ? '€${(v / 1e6).toStringAsFixed(v >= 1e7 ? 0 : 1)}M' : v >= 1000 ? '€${(v / 1000).round()}K' : '€${v.round()}';
+  static String _short(double v) => hideAmounts ? '•••' : v >= 1e6 ? '€${(v / 1e6).toStringAsFixed(v >= 1e7 ? 0 : 1)}M' : v >= 1000 ? '€${(v / 1000).round()}K' : '€${v.round()}';
 
   @override
   void paint(Canvas canvas, Size size) {
