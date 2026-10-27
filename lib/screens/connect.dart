@@ -117,7 +117,7 @@ class _ConnectSheetState extends State<ConnectSheet> {
             header: 'STEP 1',
             footer: 'Give the key the Read scope only. Without Trade it cannot buy, sell or withdraw anything.',
             children: [
-              Row2(title: 'Create a read-only API key', subtitle: 'In Bitpanda: Account, API keys', chevron: true, onTap: () => _open('https://web.bitpanda.com/my-account/apikey')),
+              Row2(title: 'Create a read-only API key', subtitle: 'In Bitpanda: Account, API keys', chevron: true, onTap: () => _open('https://app.bitpanda.com/my-account/apikey')),
             ],
           ),
         ),

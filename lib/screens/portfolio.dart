@@ -128,6 +128,7 @@ class _Allocation extends StatelessWidget {
               width: double.infinity,
               height: 12,
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   for (var i = 0; i < parts.length; i++) ...[
                     if (i > 0) const SizedBox(width: 2),
