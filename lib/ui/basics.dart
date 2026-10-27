@@ -189,7 +189,17 @@ class CountUp extends StatelessWidget {
         tween: Tween(begin: 0, end: value),
         duration: reducedMotion(context) ? Duration.zero : duration,
         curve: Curves.easeOutCubic,
-        builder: (context, v, _) => Text(eur(v, cents: cents), style: figures(style), maxLines: 1),
+        builder: (context, v, _) => hideAmounts
+            // Hidden: small quiet dots in the place of the big number, same height.
+            ? SizedBox(
+                height: (style.fontSize ?? 16) * (style.height ?? 1.2),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: 1,
+                  child: Text('€•••••', style: style.copyWith(fontSize: (style.fontSize ?? 16) * 0.55, letterSpacing: 6, color: C.ink3)),
+                ),
+              )
+            : Text(eur(v, cents: cents), style: figures(style), maxLines: 1),
       );
 }
 
