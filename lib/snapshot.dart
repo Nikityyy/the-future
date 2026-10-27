@@ -73,7 +73,7 @@ class MonthRow {
 }
 
 class Snapshot {
-  const Snapshot({required this.generatedAt, required this.holdings, required this.monthly, this.trades = const []});
+  const Snapshot({required this.generatedAt, required this.holdings, required this.monthly, this.trades = const [], this.history = const {}});
 
   factory Snapshot.fromJson(Map<String, dynamic> j) => Snapshot(
         generatedAt: DateTime.parse(j['generatedAt'] as String),
@@ -88,12 +88,33 @@ class Snapshot {
         ],
         // Snapshots synced before the export existed have no trades.
         trades: [for (final t in j['trades'] as List? ?? const []) Trade.fromJson(t as Map<String, dynamic>)],
+        history: {
+          for (final e in (j['history'] as Map<String, dynamic>? ?? const {}).entries)
+            e.key: [
+              for (final p in e.value as List) (DateTime.fromMillisecondsSinceEpoch(((p as List)[0] as num).toInt() * 1000, isUtc: true), (p[1] as num).toDouble()),
+            ],
+        },
       );
 
   final DateTime generatedAt;
   final List<Holding> holdings;
   final List<MonthRow> monthly;
   final List<Trade> trades;
+
+  /// The whole portfolio's value over time, by timeframe: day, week, month,
+  /// six_month, year and all. Empty for snapshots synced before it existed.
+  final Map<String, List<(DateTime, double)>> history;
+
+  /// Money put in minus money taken out between two moments, from the trades.
+  double netAddedBetween(DateTime from, DateTime to) {
+    var sum = 0.0;
+    for (final t in trades) {
+      final d = DateTime.tryParse(t.date);
+      if (d == null || t.value == null || d.isBefore(from) || d.isAfter(to)) continue;
+      sum += t.side == 'sell' ? -t.value! : t.side == 'buy' ? t.value! : 0;
+    }
+    return sum;
+  }
 
   double get value => holdings.fold(0, (a, h) => a + h.value);
   double get invested => holdings.fold(0, (a, h) => a + h.invested);

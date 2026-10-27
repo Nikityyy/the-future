@@ -54,6 +54,21 @@ class SettingsPage extends StatelessWidget {
                           trailing: _BioSwitch(state),
                         ),
                       Row2(title: 'Lock now', chevron: true, onTap: state.lock),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(18, 14, 18, 6),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Lock when away for', style: sans(16, weight: FontWeight.w500)),
+                            const SizedBox(height: 10),
+                            Segments(
+                              labels: const ['Always', '2 min', '15 min', '1 hour'],
+                              index: AppState.lockChoices.indexOf(state.lockMinutes).clamp(0, 3),
+                              onChanged: (i) => state.setPlan(lockMinutes: AppState.lockChoices[i]),
+                            ),
+                          ],
+                        ),
+                      ),
                       Row2(title: 'Disconnect and erase', titleColor: C.loss, onTap: () => state.disconnect()),
                     ] else ...[
                       Row2(title: 'Leave the demo', subtitle: 'Back to the start, to connect Bitpanda', chevron: true, onTap: state.disconnect),

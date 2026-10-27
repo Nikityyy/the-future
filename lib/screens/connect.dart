@@ -11,9 +11,10 @@ import '../ui/basics.dart';
 import '../ui/chrome.dart';
 import '../ui/lists.dart';
 import '../vault.dart';
+import '../version.dart';
 import 'lock.dart';
 
-const _repo = 'https://github.com/Nikityyy/the-future';
+const _repo = 'https://github.com/${AppVersion.repo}';
 
 Future<void> _open(String url) => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
 
@@ -175,11 +176,22 @@ class _ConnectSheetState extends State<ConnectSheet> {
               children: [
                 BlurText('Connect Bitpanda', style: serif(40)),
                 const SizedBox(height: 10),
-                Text('GitHub reads your portfolio for you, seals it, and publishes only the sealed file. Your key never touches this phone.', style: sans(15, color: C.ink2, height: 1.45)),
+                Text('Your own free copy of The Future on GitHub reads your portfolio, seals it, and publishes only the sealed file. Your key never touches this phone.', style: sans(15, color: C.ink2, height: 1.45)),
               ],
             ),
           ),
         ),
+        // Only the original site: everyone else needs a copy of their own first.
+        if (AppVersion.repo == AppVersion.upstream)
+          SliverToBoxAdapter(
+            child: Group(
+              header: 'FIRST TIME? MAKE YOUR OWN COPY',
+              footer: 'In your copy on GitHub: Settings, Pages, set Source to GitHub Actions, and allow workflows in the Actions tab. Your app then lives at yourname.github.io/the-future/app. Open it there, add it to your Home Screen, and do the steps below in it.',
+              children: [
+                Row2(title: 'Copy The Future to your GitHub', subtitle: 'A fork. Free, takes a minute', chevron: true, onTap: () => _open('https://github.com/${AppVersion.upstream}/fork')),
+              ],
+            ),
+          ),
         SliverToBoxAdapter(
           child: Group(
             header: 'STEP 1',

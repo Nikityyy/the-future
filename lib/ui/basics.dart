@@ -29,6 +29,12 @@ class AppScrollBehavior extends ScrollBehavior {
 
 bool reducedMotion(BuildContext context) => MediaQuery.disableAnimationsOf(context);
 
+/// True while a tab is built in the background: whatever appears then starts
+/// finished, so the tab later shows up at once, like a native tab bar.
+bool instantEntrances = false;
+
+bool skipEntrance(BuildContext context) => instantEntrances || reducedMotion(context);
+
 /// Shrinks a little under the finger and springs back, with a tick.
 class Pressable extends StatefulWidget {
   const Pressable({super.key, required this.child, this.onTap, this.scale = 0.97, this.haptic = true, this.semanticLabel});
@@ -107,7 +113,7 @@ class _BlurInState extends State<BlurIn> with SingleTickerProviderStateMixin {
     super.didChangeDependencies();
     if (_started) return;
     _started = true;
-    if (reducedMotion(context)) {
+    if (skipEntrance(context)) {
       _c.value = 1;
     } else {
       Future.delayed(widget.delay, () {
@@ -203,7 +209,7 @@ class _CountUpState extends State<CountUp> {
     final style = widget.style;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: widget.value),
-      duration: reducedMotion(context) ? Duration.zero : (first ? widget.duration : const Duration(milliseconds: 90)),
+      duration: (first ? skipEntrance(context) : reducedMotion(context)) ? Duration.zero : (first ? widget.duration : const Duration(milliseconds: 90)),
       curve: Curves.easeOutCubic,
       builder: (context, v, _) => hideAmounts
           // Hidden: small quiet dots in the place of the big number, same height.

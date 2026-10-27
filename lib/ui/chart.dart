@@ -11,7 +11,7 @@ import 'basics.dart';
 /// The growth curve with its band between the cautious and the hopeful case.
 /// The picked scenario is the bold line; drag a finger along it to read a month.
 class GrowthChart extends StatefulWidget {
-  const GrowthChart({super.key, required this.low, required this.mid, required this.high, required this.start, required this.years, required this.restartKey, this.height = 280, this.interactive = true});
+  const GrowthChart({super.key, required this.low, required this.mid, required this.high, required this.start, required this.years, required this.restartKey, this.height = 280, this.interactive = true, this.monthsPerPoint = 1, this.goal});
 
   final List<double> low;
   final List<double> mid;
@@ -24,6 +24,12 @@ class GrowthChart extends StatefulWidget {
 
   final double height;
 
+  /// The values are thinned out; each point is this many months apart.
+  final int monthsPerPoint;
+
+  /// Drawn as a dashed line when it fits the chart.
+  final double? goal;
+
   /// Whether a finger dragged along it reads a month.
   final bool interactive;
 
@@ -32,7 +38,7 @@ class GrowthChart extends StatefulWidget {
 }
 
 class _GrowthChartState extends State<GrowthChart> with SingleTickerProviderStateMixin {
-  late final AnimationController _draw = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
+  late final AnimationController _draw = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
   int? _scrub;
   bool _first = true;
 
@@ -41,7 +47,7 @@ class _GrowthChartState extends State<GrowthChart> with SingleTickerProviderStat
     super.didChangeDependencies();
     if (_first) {
       _first = false;
-      reducedMotion(context) ? _draw.value = 1 : _draw.forward();
+      skipEntrance(context) ? _draw.value = 1 : _draw.forward();
     }
   }
 
@@ -89,6 +95,8 @@ class _GrowthChartState extends State<GrowthChart> with SingleTickerProviderStat
                   years: widget.years,
                   progress: Curves.easeOutCubic.transform(_draw.value),
                   scrub: _scrub,
+                  monthsPerPoint: widget.monthsPerPoint,
+                  goal: widget.goal,
                 ),
               ),
             ),
@@ -98,7 +106,7 @@ class _GrowthChartState extends State<GrowthChart> with SingleTickerProviderStat
 }
 
 class _Painter extends CustomPainter {
-  _Painter({required this.low, required this.mid, required this.high, required this.start, required this.years, required this.progress, required this.scrub});
+  _Painter({required this.low, required this.mid, required this.high, required this.start, required this.years, required this.progress, required this.scrub, this.monthsPerPoint = 1, this.goal});
 
   static const left = 46.0;
   static const _top = 12.0;
@@ -109,6 +117,8 @@ class _Painter extends CustomPainter {
   final int years;
   final double progress;
   final int? scrub;
+  final int monthsPerPoint;
+  final double? goal;
 
   static double _niceMax(double v) {
     if (v <= 0) return 1000;
@@ -143,6 +153,17 @@ class _Painter extends CustomPainter {
     }
     _text(canvas, 'Now', Offset(plot.left, plot.bottom + 10), C.ink3, align: 0, below: true);
     _text(canvas, '${start.year + years}', Offset(plot.right, plot.bottom + 10), C.ink3, align: 2, below: true);
+
+    final g = goal;
+    if (g != null && g <= yMax) {
+      final gp = Paint()
+        ..color = C.navy.withValues(alpha: 0.55)
+        ..strokeWidth = 1.4;
+      for (var gx = plot.left; gx < plot.right; gx += 9) {
+        canvas.drawLine(Offset(gx, y(g)), Offset(math.min(gx + 5, plot.right), y(g)), gp);
+      }
+      _text(canvas, 'Goal', Offset(plot.left + 4, y(g) - 9), C.navy, align: 0);
+    }
 
     final last = (n * progress).floor().clamp(1, n);
     Path line(List<double> s) {
@@ -203,7 +224,7 @@ class _Painter extends CustomPainter {
 
     if (scrub != null) {
       canvas.drawLine(Offset(pt.dx, plot.top), Offset(pt.dx, plot.bottom), Paint()..color = C.ink.withValues(alpha: 0.18));
-      final date = DateTime(start.year, start.month + scrub!);
+      final date = DateTime(start.year, start.month + scrub! * monthsPerPoint);
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       _tip(canvas, size, pt.dx, '${months[date.month - 1]} ${date.year}', eur(mid[i]), '${eur(low[i])} to ${eur(high[i])}');
     }

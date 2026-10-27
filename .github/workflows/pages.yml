@@ -70,6 +70,7 @@ jobs:
           --dart-define=APP_VERSION=${{ steps.version.outputs.name }}
           --dart-define=APP_BUILD=${{ github.run_number }}
           --dart-define=APP_COMMIT=${{ github.sha }}
+          --dart-define=APP_REPO=${{ github.repository }}
 
       - name: Generate service worker
         run: npx --yes workbox-cli@7.3.0 generateSW workbox-config.cjs

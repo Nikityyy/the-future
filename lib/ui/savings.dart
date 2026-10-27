@@ -18,15 +18,14 @@ class SavingsCompare extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cash = plan.contributed.last;
-    final top = [plan.end, savings.end, cash].reduce((a, b) => a > b ? a : b);
+    final top = plan.end > savings.end ? plan.end : savings.end;
     final gap = plan.end - savings.end;
     final rate = state.savingsRate;
     final rateText = '${rate.toStringAsFixed(rate % 1 == 0 ? 0 : (rate * 10) % 1 == 0 ? 1 : 2)}%';
     final bank = rate == defaultSavingsRate ? 'a Raiffeisen savings account' : 'a savings account at $rateText';
     return Group(
       header: 'VERSUS A SAVINGS ACCOUNT',
-      footer: 'Savings rate: $rateText a year, what Raiffeisen Online Sparen pays at several regional banks in October 2026. Other banks pay more or less, so you can change it under Assumptions. Before tax. Savings are protected up to €100,000; investments can lose value.',
+      footer: 'At $rateText a year, what Raiffeisen Online Sparen paid in October 2026. Change it under Assumptions.',
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
@@ -40,9 +39,8 @@ class SavingsCompare extends StatelessWidget {
               const SizedBox(height: 6),
               Text('Same money, same ${eur(state.monthly)} a month, ${state.years} years.', style: sans(13.5, color: C.ink2)),
               const SizedBox(height: 20),
-              _Bar('Kept as cash', 'No growth, just what you put in', cash, top, C.sand),
-              _Bar('Savings account', 'Grows slowly and safely', savings.end, top, C.navy),
-              _Bar('Invested as planned', 'Grows more, with ups and downs', plan.end, top, C.green, strong: true),
+              _Bar('Savings account', 'Safe, protected up to €100,000', savings.end, top, C.navy),
+              _Bar('Invested as planned', 'Grows more, and can also fall', plan.end, top, C.green, strong: true),
               const SizedBox(height: 6),
               Text(
                 cautious.end < savings.end ? 'In the cautious case it would end ${eur(savings.end - cautious.end)} behind. That is the price of a higher return.' : 'Even in the cautious case it ends ${eur(cautious.end - savings.end)} ahead.',

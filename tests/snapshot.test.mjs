@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createDecipheriv, pbkdf2Sync } from 'node:crypto';
 import { test } from 'node:test';
-import { buildSnapshot, kindOf, seal } from '../tools/snapshot.mjs';
+import { buildSnapshot, historyFrom, kindOf, seal, unseal } from '../tools/snapshot.mjs';
 
 const assets = [
   { id: 'btc', name: 'Bitcoin', symbol: 'BTC', type: 'CRYPTO', group: 'CRYPTOCOIN' },
@@ -53,6 +53,22 @@ test('lists every non-cash transaction, oldest first, with its euro value', () =
   assert.deepEqual(s.trades[0], { date: '2026-08-03T08:00:00Z', symbol: 'VWCE', name: 'FTSE All-World', kind: 'fund', side: 'buy', type: 'TRADE', amount: 1, price: 100, value: 100, fee: null });
   assert.equal(s.trades[3].side, 'sell');
   assert.equal(s.trades[3].value, 30);
+});
+
+test('keeps history older than the Bitpanda year from the last sync', () => {
+  const p = (iso, v) => ({ time: iso, value: { value: String(v) } });
+  const previous = { all: [[Date.parse('2024-01-01') / 1000, 50], [Date.parse('2025-06-01') / 1000, 80]] };
+  const h = historyFrom({ YEAR: [p('2025-12-01T00:00:00Z', 100), p('2025-11-01T00:00:00Z', 90)], DAY: [p('2026-10-27T10:00:00Z', 101.234)] }, previous);
+  assert.deepEqual(h.year.map(([, v]) => v), [90, 100], 'oldest first');
+  assert.deepEqual(h.all.map(([, v]) => v), [50, 80, 90, 100]);
+  assert.equal(h.day[0][1], 101.23);
+  assert.deepEqual(h.week, []);
+  assert.deepEqual(historyFrom({}, undefined).all, []);
+});
+
+test('unseal reads what seal wrote', () => {
+  assert.deepEqual(unseal(seal({ a: 1 }, 'correct horse battery'), 'correct horse battery'), { a: 1 });
+  assert.throws(() => unseal(seal({ a: 1 }, 'correct horse battery'), 'wrong horse battery'));
 });
 
 test('seals so that WebCrypto layout decrypts with the passphrase', () => {

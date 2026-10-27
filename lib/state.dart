@@ -47,7 +47,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   Map<String, double> monthlyBy = {};
   int years = 20;
   int scenario = 1; // 0 cautious, 1 expected, 2 hopeful
-  bool realTerms = false;
+
+  /// What you are saving towards: an amount by the end of a year.
+  ({double amount, int year})? goal;
   double raisePercent = 0;
   double inflation = defaultInflation;
   double savingsRate = defaultSavingsRate;
@@ -60,7 +62,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   /// Amounts show as dots.
   bool hide = false;
 
-  static const autoLock = Duration(minutes: 2);
+  /// Locks itself once the app was away this long. 0 locks every time.
+  int lockMinutes = 15;
+  static const lockChoices = [0, 2, 15, 60];
 
   bool get ready => snapshot != null && !locked;
 
@@ -89,19 +93,50 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     ];
   }
 
-  Projection projectionFor(int scenario, {double? monthlyAmount, int? yearsAhead}) {
+  /// [real] takes inflation off, so the result reads in today's money.
+  Projection projectionFor(int scenario, {double? monthlyAmount, int? months, bool real = false}) {
     final s = snapshot!;
     return project(
       start: {for (final k in active) k: s.valueOf(k)},
       mix: s.mixFor(active),
       monthly: monthlyAmount ?? monthly,
-      months: (yearsAhead ?? years) * 12,
+      months: months ?? years * 12,
       yearlyReturn: {for (final k in Kind.values) k: returns[k]![scenario]},
       raisePercent: raisePercent,
       oneOffs: oneOffsNow,
-      realTerms: realTerms,
+      realTerms: real,
       inflation: inflation,
     );
+  }
+
+  /// Months from now to the end of the goal's year.
+  int get goalMonths => goal == null ? 0 : ((goal!.year - DateTime.now().year) * 12 + 12 - DateTime.now().month).clamp(1, 1200);
+
+  /// The year the picked scenario first reaches the goal at today's monthly
+  /// amount, or null when it does not within 100 years.
+  int? goalReachedIn() {
+    final g = goal!;
+    final v = projectionFor(scenario, months: 1200).values;
+    final i = v.indexWhere((x) => x >= g.amount);
+    return i < 0 ? null : DateTime(DateTime.now().year, DateTime.now().month + i).year;
+  }
+
+  /// The monthly amount that reaches the goal in time in the picked
+  /// scenario, or null when no sensible amount does.
+  double? monthlyForGoal() {
+    final g = goal!;
+    bool enough(double m) => projectionFor(scenario, monthlyAmount: m, months: goalMonths).end >= g.amount;
+    if (enough(0)) return 0;
+    var lo = 0.0, hi = 500.0;
+    while (!enough(hi)) {
+      hi *= 2;
+      if (hi > 1e6) return null;
+    }
+    for (var i = 0; i < 40; i++) {
+      final m = (lo + hi) / 2;
+      enough(m) ? hi = m : lo = m;
+    }
+    return hi;
   }
 
   /// The same money and the same monthly amount, left in a savings account.
@@ -115,7 +150,6 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       yearlyReturn: {for (final k in Kind.values) k: savingsRate},
       raisePercent: raisePercent,
       oneOffs: oneOffsNow,
-      realTerms: realTerms,
       inflation: inflation,
     );
   }
@@ -254,7 +288,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     oneOffs = [];
     filter = {};
     hide = fmt.hideAmounts = false;
-    realTerms = false;
+    goal = null;
+    lockMinutes = 15;
     raisePercent = 0;
     inflation = defaultInflation;
     savingsRate = defaultSavingsRate;
@@ -296,13 +331,16 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     Object? monthly = _keep,
     int? years,
     int? scenario,
-    bool? realTerms,
     double? raisePercent,
     double? inflation,
     double? savingsRate,
     Returns? returns,
     List<OneOffEntry>? oneOffs,
+    Object? goal = _keep,
+    int? lockMinutes,
   }) {
+    this.lockMinutes = lockMinutes ?? this.lockMinutes;
+    if (goal != _keep) this.goal = goal as ({double amount, int year})?;
     if (monthly != _keep) {
       if (monthly == null) {
         monthlyBy.remove(_viewKey);
@@ -312,7 +350,6 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     }
     this.years = years ?? this.years;
     this.scenario = scenario ?? this.scenario;
-    this.realTerms = realTerms ?? this.realTerms;
     this.raisePercent = raisePercent ?? this.raisePercent;
     this.inflation = inflation ?? this.inflation;
     this.savingsRate = savingsRate ?? this.savingsRate;
@@ -331,7 +368,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         'monthlyBy': monthlyBy,
         'years': years,
         'scenario': scenario,
-        'real': realTerms,
+        if (goal != null) 'goal': [goal!.amount, goal!.year],
+        'lock': lockMinutes,
         'raise': raisePercent,
         'inflation': inflation,
         'savings': savingsRate,
@@ -351,7 +389,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       hide = fmt.hideAmounts = j['hide'] as bool? ?? false;
       years = j['years'] as int? ?? years;
       scenario = j['scenario'] as int? ?? scenario;
-      realTerms = j['real'] as bool? ?? false;
+      lockMinutes = j['lock'] as int? ?? 15;
+      final g = j['goal'] as List?;
+      goal = g == null ? null : (amount: (g[0] as num).toDouble(), year: g[1] as int);
       raisePercent = (j['raise'] as num?)?.toDouble() ?? 0;
       inflation = (j['inflation'] as num?)?.toDouble() ?? defaultInflation;
       savingsRate = (j['savings'] as num?)?.toDouble() ?? defaultSavingsRate;
@@ -372,7 +412,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  // Locks itself two minutes after the app went to the background.
+  // Locks itself [lockMinutes] after the app went to the background.
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -382,7 +422,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     } else if (s == AppLifecycleState.resumed) {
       final at = _hiddenAt;
       _hiddenAt = null;
-      if (at != null && DateTime.now().difference(at) > autoLock) lock();
+      if (at != null && DateTime.now().difference(at) >= Duration(minutes: lockMinutes)) lock();
     }
   }
 }

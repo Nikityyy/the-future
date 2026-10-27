@@ -47,16 +47,16 @@ class KindChips extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         children: [
-          _Chip('All', all, state.showAllKinds),
-          for (final k in present) _Chip(kindNames[k]!, !all && state.active.contains(k), () => state.toggleKind(k)),
+          KindChip('All', all, state.showAllKinds),
+          for (final k in present) KindChip(kindNames[k]!, !all && state.active.contains(k), () => state.toggleKind(k)),
         ],
       ),
     );
   }
 }
 
-class _Chip extends StatelessWidget {
-  const _Chip(this.label, this.on, this.onTap);
+class KindChip extends StatelessWidget {
+  const KindChip(this.label, this.on, this.onTap, {super.key});
 
   final String label;
   final bool on;

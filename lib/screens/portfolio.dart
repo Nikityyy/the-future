@@ -10,7 +10,10 @@ import '../theme.dart';
 import '../ui/basics.dart';
 import '../ui/chrome.dart';
 import '../ui/filter.dart';
+import '../ui/history.dart';
 import '../ui/lists.dart';
+import 'asset.dart';
+import 'connect.dart';
 
 class PortfolioPage extends StatelessWidget {
   const PortfolioPage(this.state, {super.key});
@@ -53,13 +56,13 @@ class PortfolioPage extends StatelessWidget {
               SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.only(top: 6), child: KindChips(state))),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
+                  padding: const EdgeInsets.fromLTRB(24, 18, 24, 22),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Total value', style: sans(14, color: C.ink2)),
                       const SizedBox(height: 6),
-                      BlurIn(child: CountUp(value, style: serif(64, tracking: -2))),
+                      BlurIn(blur: 0, duration: const Duration(milliseconds: 500), child: CountUp(value, style: serif(64, tracking: -2))),
                       const SizedBox(height: 10),
                       Text.rich(
                         TextSpan(children: [
@@ -67,28 +70,41 @@ class PortfolioPage extends StatelessWidget {
                           TextSpan(text: '  on ${eur(invested)} invested', style: figures(sans(15, color: C.ink2))),
                         ]),
                       ),
+                      if (state.mode == Mode.live) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          state.error ?? 'Updated ${ago(s.generatedAt)}. Pull down to check for newer.',
+                          style: sans(12.5, color: state.error == null ? C.ink3 : C.loss),
+                        ),
+                      ],
                     ],
                   ),
                 ),
               ),
+              // Bitpanda's history is the whole portfolio, so it only shows unfiltered.
+              if (state.filter.isEmpty) SliverToBoxAdapter(child: ValueHistory(s)),
               SliverToBoxAdapter(child: _Allocation(s, state.active)),
               for (final k in Kind.values)
                 if (state.active.contains(k) && s.holdings.any((h) => h.kind == k))
                   SliverToBoxAdapter(
                     child: Group(
                       header: kindNames[k]!.toUpperCase(),
-                      children: [for (final h in s.holdings.where((h) => h.kind == k)) _HoldingRow(h)],
+                      children: [for (final h in s.holdings.where((h) => h.kind == k)) _HoldingRow(h, s)],
                     ),
                   ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 0, 28, 0),
-                  child: Text(
-                    state.error ?? (state.mode == Mode.demo ? 'Made-up numbers. Connect Bitpanda in You to see your own.' : 'Updated ${ago(s.generatedAt)}. Read-only from Bitpanda.'),
-                    style: sans(12.5, color: state.error == null ? C.ink2 : C.loss, height: 1.4),
+              if (state.mode == Mode.demo)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                    child: Column(
+                      children: [
+                        Text('These are made-up numbers.', style: sans(13, color: C.ink2)),
+                        const SizedBox(height: 10),
+                        AppButton('Connect your Bitpanda', onTap: () => showPage<void>(context, (_) => ConnectSheet(state))),
+                      ],
+                    ),
                   ),
                 ),
-              ),
               SliverToBoxAdapter(child: SizedBox(height: Dock.clearance(context) + 16)),
             ],
           );
@@ -109,8 +125,9 @@ class _Tag extends StatelessWidget {
 }
 
 class _HoldingRow extends StatelessWidget {
-  const _HoldingRow(this.h);
+  const _HoldingRow(this.h, this.s);
   final Holding h;
+  final Snapshot s;
 
   @override
   Widget build(BuildContext context) => Row2(
@@ -118,6 +135,8 @@ class _HoldingRow extends StatelessWidget {
         subtitle: '${amountOf(h.amount)} ${h.symbol}',
         trailing: Text(eur(h.value), style: figures(sans(16, weight: FontWeight.w500))),
         subtrailing: Text(percent(h.gainPercent), style: figures(sans(13, color: h.gain >= 0 ? C.greenInk : C.loss))),
+        chevron: true,
+        onTap: () => showPage<void>(context, (_) => AssetPage(h, s)),
       );
 }
 

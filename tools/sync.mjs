@@ -1,9 +1,9 @@
 // Reads the portfolio from Bitpanda (read-only key) and writes the sealed snapshot.
 //   BITPANDA_API_KEY=... SYNC_PASSPHRASE=... node tools/sync.mjs <out-file>
 // Without a key it writes nothing and exits 0, so a fresh fork still deploys.
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { buildSnapshot, seal } from './snapshot.mjs';
+import { buildSnapshot, historyFrom, seal, TIMEFRAMES, unseal } from './snapshot.mjs';
 
 const BASE = 'https://api.public.bitpanda.com/v1';
 const [out] = process.argv.slice(2);
@@ -53,7 +53,9 @@ try {
 
 async function run() {
 const portfolio = ((await get('/portfolio')).data ?? []).filter((p) => p.asset_id);
-const ids = [...new Set(portfolio.map((p) => p.asset_id))];
+const operations = await pages('/operations');
+// Names for everything held and everything ever traded, sold-off assets included.
+const ids = [...new Set([...portfolio.map((p) => p.asset_id), ...operations.flatMap((o) => (o.transactions ?? []).map((t) => t.asset_id))].filter(Boolean))];
 const assets = [];
 let everyAsset;
 for (let i = 0; i < ids.length; i += 25) {
@@ -74,10 +76,27 @@ for (let i = 0; i < ids.length; i += 25) {
     }
   }
 }
-const operations = await pages('/operations');
 
-const snapshot = buildSnapshot({ portfolio, assets, operations });
-console.log(`Synced ${snapshot.holdings.length} holdings and ${operations.length} operations.`);
+// The value over time, as the Bitpanda app charts it. A timeframe that fails stays empty.
+const byTimeframe = {};
+for (const tf of TIMEFRAMES) {
+  try {
+    byTimeframe[tf] = (await get('/portfolio-history', { timeframe: tf })).data?.datapoints ?? [];
+  } catch (e) {
+    console.log(`::warning title=No ${tf} history::${e.message}`);
+  }
+}
+// The deploy put the live snapshot at <out> first: its history reaches back further than a year.
+let previous;
+try {
+  previous = unseal(JSON.parse(await readFile(out, 'utf8')), pass).history;
+} catch {
+  // First sync, or the passphrase changed: the history starts at Bitpanda's year.
+}
+const history = historyFrom(byTimeframe, previous);
+
+const snapshot = buildSnapshot({ portfolio, assets, operations, history });
+console.log(`Synced ${snapshot.holdings.length} holdings, ${operations.length} operations and ${history.all.length} history points.`);
 await mkdir(dirname(out), { recursive: true });
 await writeFile(out, JSON.stringify(seal(snapshot, pass)));
 }

@@ -8,5 +8,9 @@ class AppVersion {
   static const build = String.fromEnvironment('APP_BUILD');
   static const commit = String.fromEnvironment('APP_COMMIT');
 
+  /// The GitHub repository this copy was built from: a fork links to its own secrets.
+  static const repo = String.fromEnvironment('APP_REPO', defaultValue: upstream);
+  static const upstream = 'Nikityyy/the-future';
+
   static String get label => build.isEmpty ? name : '$name ($build)';
 }

@@ -1,7 +1,7 @@
 // Turns the raw Bitpanda Public API answers into the snapshot the app shows,
 // and seals it with a passphrase. Pure functions, no network: sync.mjs does the
 // fetching, tests/snapshot.test.mjs checks the rest.
-import { createCipheriv, pbkdf2Sync, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, pbkdf2Sync, randomBytes } from 'node:crypto';
 
 // ponytail: the account is in EUR (Bitpanda Austria); other currencies are not converted.
 export const ITERATIONS = 600_000;
@@ -96,7 +96,30 @@ export function tradesFrom(operations, assets) {
   return out.sort((x, y) => String(x.date).localeCompare(String(y.date)));
 }
 
-export function buildSnapshot({ portfolio, assets, operations, now = new Date() }) {
+export const TIMEFRAMES = ['DAY', 'WEEK', 'MONTH', 'SIX_MONTH', 'YEAR'];
+
+/** Bitpanda's datapoints as [epoch seconds, value], oldest first. */
+export function pointsFrom(datapoints) {
+  return (datapoints ?? [])
+    .map((d) => [Math.round(Date.parse(d.time) / 1000), round(num(d.value))])
+    .filter(([t]) => Number.isFinite(t))
+    .sort((a, b) => a[0] - b[0]);
+}
+
+/**
+ * The value over time per timeframe. Bitpanda goes back one year at most, so
+ * `all` keeps what earlier syncs saw before that year and adds the new year.
+ */
+export function historyFrom(byTimeframe, previous) {
+  const h = {};
+  for (const tf of TIMEFRAMES) h[tf.toLowerCase()] = pointsFrom(byTimeframe[tf]);
+  const year = h.year;
+  const older = (previous?.all ?? previous?.year ?? []).filter(([t]) => !year.length || t < year[0][0]);
+  h.all = [...older, ...year];
+  return h;
+}
+
+export function buildSnapshot({ portfolio, assets, operations, history, now = new Date() }) {
   return {
     v: 1,
     generatedAt: now.toISOString(),
@@ -104,6 +127,7 @@ export function buildSnapshot({ portfolio, assets, operations, now = new Date() 
     holdings: holdingsFrom(portfolio, assets),
     monthly: monthlyFrom(operations, assets, now),
     trades: tradesFrom(operations, assets),
+    ...(history && { history }),
   };
 }
 
@@ -116,4 +140,12 @@ export function seal(snapshot, passphrase) {
   const cipher = createCipheriv('aes-256-gcm', key, iv);
   const body = Buffer.concat([cipher.update(JSON.stringify(snapshot), 'utf8'), cipher.final(), cipher.getAuthTag()]);
   return { v: 1, iter: ITERATIONS, salt: salt.toString('base64'), iv: iv.toString('base64'), ct: body.toString('base64') };
+}
+
+/** Opens what seal() wrote; throws on a wrong passphrase. */
+export function unseal(sealed, passphrase) {
+  const [salt, iv, ct] = ['salt', 'iv', 'ct'].map((k) => Buffer.from(sealed[k], 'base64'));
+  const d = createDecipheriv('aes-256-gcm', pbkdf2Sync(passphrase, salt, sealed.iter, 32, 'sha256'), iv);
+  d.setAuthTag(ct.subarray(ct.length - 16));
+  return JSON.parse(Buffer.concat([d.update(ct.subarray(0, ct.length - 16)), d.final()]).toString());
 }

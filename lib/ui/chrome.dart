@@ -29,6 +29,7 @@ class Dock extends StatelessWidget {
         right: 0,
         bottom: browserSafeArea().bottom,
         child: GlassTabBar.bottom(
+          quality: GlassQuality.standard,
           tabs: [for (final t in items) GlassTab(icon: Icon(t.$1), activeIcon: Icon(t.$2), label: t.$3)],
           selectedIndex: index,
           onTabSelected: (i) {

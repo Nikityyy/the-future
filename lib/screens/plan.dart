@@ -81,11 +81,6 @@ class AssumptionsSheet extends StatelessWidget {
                 child: Group(
                   header: 'YOUR MONEY',
                   children: [
-                    Row2(
-                      title: 'In today’s money',
-                      subtitle: 'Takes inflation off the result, so €1,000 means what €1,000 buys now',
-                      trailing: Switch2(on: state.realTerms, onChanged: (v) => state.setPlan(realTerms: v)),
-                    ),
                     Row2(title: 'Inflation', trailing: _Stepper(text: _pct(state.inflation), onMinus: () => state.setPlan(inflation: (state.inflation - 0.5).clamp(0, 10)), onPlus: () => state.setPlan(inflation: (state.inflation + 0.5).clamp(0, 10)))),
                     Row2(title: 'Savings account rate', subtitle: 'What the comparison with a savings account pays a year', trailing: _Stepper(text: _pct(state.savingsRate), onMinus: () => state.setPlan(savingsRate: (state.savingsRate - 0.25).clamp(0, 10)), onPlus: () => state.setPlan(savingsRate: (state.savingsRate + 0.25).clamp(0, 10)))),
                     Row2(title: 'Yearly raise', subtitle: 'Add more each year, such as with your pay', trailing: _Stepper(text: _pct(state.raisePercent), onMinus: () => state.setPlan(raisePercent: (state.raisePercent - 1).clamp(0, 30)), onPlus: () => state.setPlan(raisePercent: (state.raisePercent + 1).clamp(0, 30)))),
@@ -108,7 +103,7 @@ class AssumptionsSheet extends StatelessWidget {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                  child: AppButton('Back to defaults', filled: false, onTap: () => state.setPlan(returns: {for (final e in defaultReturns.entries) e.key: [...e.value]}, inflation: defaultInflation, savingsRate: defaultSavingsRate, raisePercent: 0, realTerms: false)),
+                  child: AppButton('Back to defaults', filled: false, onTap: () => state.setPlan(returns: {for (final e in defaultReturns.entries) e.key: [...e.value]}, inflation: defaultInflation, savingsRate: defaultSavingsRate, raisePercent: 0)),
                 ),
               ),
               SliverToBoxAdapter(child: SizedBox(height: 40 + browserSafeArea().bottom)),
@@ -208,4 +203,88 @@ class _OneOffsSheetState extends State<OneOffsSheet> {
           );
         },
       );
+}
+
+/// An amount you want to have by the end of a year.
+class GoalSheet extends StatefulWidget {
+  const GoalSheet(this.state, {super.key});
+
+  final AppState state;
+
+  @override
+  State<GoalSheet> createState() => _GoalSheetState();
+}
+
+class _GoalSheetState extends State<GoalSheet> {
+  late double _amount = widget.state.goal?.amount ?? _suggest();
+  late int _year = widget.state.goal?.year ?? DateTime.now().year + 10;
+
+  /// A round number a good way above today's value.
+  double _suggest() {
+    final v = widget.state.snapshot?.value ?? 0;
+    for (final m in [10e3, 25e3, 50e3, 100e3, 250e3, 500e3, 1e6]) {
+      if (m >= v * 1.5) return m;
+    }
+    return 2e6;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now().year;
+    final had = widget.state.goal != null;
+    return CustomScrollView(
+      controller: SheetScroll.of(context),
+      slivers: [
+        const SliverToBoxAdapter(child: SheetHeader('Your goal')),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 4, 24, 22),
+            child: Text('What you want to have, and by when. The Future page then tells you whether your plan gets there, and what it takes if not.', style: sans(15, color: C.ink2, height: 1.45)),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Group(
+            header: 'AMOUNT',
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 10, bottom: 6),
+                child: RulerSlider(label: 'Goal amount', value: _amount, min: 5000, max: 2000000, step: 5000, onChanged: (v) => setState(() => _amount = v)),
+              ),
+            ],
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Group(
+            header: 'BY THE END OF',
+            children: [
+              Row2(title: 'Year', trailing: _Stepper(text: '$_year', onMinus: () => setState(() => _year = (_year - 1).clamp(now + 1, now + 60)), onPlus: () => setState(() => _year = (_year + 1).clamp(now + 1, now + 60)))),
+            ],
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: AppButton('Save ${eur(_amount)} by $_year', onTap: () {
+              Haptics.confirm();
+              widget.state.setPlan(goal: (amount: _amount, year: _year));
+              Navigator.of(context).maybePop();
+            }),
+          ),
+        ),
+        if (had)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Center(
+                child: PillButton('Remove the goal', onTap: () {
+                  widget.state.setPlan(goal: null);
+                  Navigator.of(context).maybePop();
+                }),
+              ),
+            ),
+          ),
+        SliverToBoxAdapter(child: SizedBox(height: 40 + browserSafeArea().bottom)),
+      ],
+    );
+  }
 }
