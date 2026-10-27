@@ -130,4 +130,15 @@ void main() {
     expect(2100 - 1000 - s.netAddedBetween(t0, t1), 100);
     expect(1000 + s.weightedAddedBetween(t0, t1), closeTo(1500, 1e-9));
   });
+
+  test('the buy day is the middle day of the last half year of buys', () {
+    Trade buy(DateTime d) => Trade(date: d.toIso8601String(), symbol: 'X', name: 'X', kind: Kind.fund, side: 'buy', type: 'TRADE', amount: 1, value: 100);
+    final s = Snapshot(
+      generatedAt: DateTime(2026, 10, 20),
+      holdings: const [],
+      monthly: const [],
+      trades: [buy(DateTime(2025, 1, 28, 12)), buy(DateTime(2026, 7, 3, 12)), buy(DateTime(2026, 8, 3, 12)), buy(DateTime(2026, 9, 17, 12))],
+    );
+    expect(s.buyDay, 3);
+  });
 }

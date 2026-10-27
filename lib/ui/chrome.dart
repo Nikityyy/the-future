@@ -180,7 +180,7 @@ class _SheetScrollBehavior extends AppScrollBehavior {
 Future<bool> confirmSheet(BuildContext context, {required String title, required String message, required String action}) async {
   final ok = await showSheet<bool>(
     context,
-    height: 270,
+    height: 276,
     (context) => Padding(
       padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
       child: Column(
@@ -374,9 +374,9 @@ class PillButton extends StatelessWidget {
         semanticLabel: label,
         onTap: onTap,
         child: Container(
-          height: 38,
-          padding: const EdgeInsets.symmetric(horizontal: 17),
-          decoration: BoxDecoration(color: C.fill, borderRadius: BorderRadius.circular(19)),
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          decoration: BoxDecoration(color: C.fill, borderRadius: BorderRadius.circular(22)),
           // As wide as the word, wherever the capsule sits.
           child: Center(widthFactor: 1, child: Text(label, style: sans(15, weight: strong ? FontWeight.w600 : FontWeight.w500, color: C.ink))),
         ),
@@ -393,9 +393,9 @@ class Segments extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        height: 40,
+        height: 44,
         padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(color: C.fill, borderRadius: BorderRadius.circular(20)),
+        decoration: BoxDecoration(color: C.fill, borderRadius: BorderRadius.circular(22)),
         child: Stack(
           children: [
             AnimatedAlign(
@@ -408,7 +408,7 @@ class Segments extends StatelessWidget {
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: C.raised,
-                    borderRadius: BorderRadius.circular(17),
+                    borderRadius: BorderRadius.circular(19),
                     boxShadow: const [BoxShadow(color: Color(0x1A16170F), blurRadius: 6, offset: Offset(0, 2))],
                   ),
                 ),

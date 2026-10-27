@@ -47,8 +47,8 @@ class _Round extends StatelessWidget {
           onTap();
         },
         child: Container(
-          width: 34,
-          height: 34,
+          width: 44,
+          height: 44,
           alignment: Alignment.center,
           decoration: BoxDecoration(color: C.ink.withValues(alpha: 0.06), shape: BoxShape.circle),
           child: Text(label, style: sans(19, color: C.ink)),
@@ -129,11 +129,16 @@ class Switch2 extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
         toggled: on,
         child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: () {
             Haptics.selection();
             onChanged(!on);
           },
-          child: AnimatedContainer(
+          // The switch is drawn 30 high; the tap area is the full 44.
+          child: Container(
+            height: 44,
+            alignment: Alignment.center,
+            child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             width: 54,
             height: 30,
@@ -149,6 +154,7 @@ class Switch2 extends StatelessWidget {
                 decoration: const BoxDecoration(color: C.raised, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Color(0x2616170F), blurRadius: 4, offset: Offset(0, 2))]),
               ),
             ),
+          ),
           ),
         ),
       );

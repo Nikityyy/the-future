@@ -106,7 +106,18 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       oneOffs: oneOffsNow,
       realTerms: real,
       inflation: inflation,
+      addAt: addAt,
     );
+  }
+
+  /// How far into each month from today your money goes in, from the day
+  /// you usually buy on. Without any buys, at once.
+  double get addAt {
+    final day = snapshot?.buyDay;
+    if (day == null) return 0;
+    final now = DateTime.now();
+    final length = DateTime(now.year, now.month + 1, 0).day;
+    return ((day - now.day) % length) / length;
   }
 
   /// Months from now to the end of the goal's year.
@@ -151,6 +162,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       raisePercent: raisePercent,
       oneOffs: oneOffsNow,
       inflation: inflation,
+      addAt: addAt,
     );
   }
 

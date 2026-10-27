@@ -23,8 +23,8 @@ class EyeButton extends StatelessWidget {
         semanticLabel: state.hide ? 'Show amounts' : 'Hide amounts',
         onTap: () => state.setHide(!state.hide),
         child: Container(
-          width: 40,
-          height: 40,
+          width: 44,
+          height: 44,
           decoration: const BoxDecoration(color: C.fill, shape: BoxShape.circle),
           child: Icon(state.hide ? CupertinoIcons.eye_slash : CupertinoIcons.eye, size: 20, color: C.ink),
         ),
@@ -82,8 +82,10 @@ class KindChip extends StatelessWidget {
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
-                padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 15, vertical: 9),
-                decoration: BoxDecoration(color: on ? C.navy : C.fill, borderRadius: BorderRadius.circular(20)),
+                height: 44,
+                alignment: Alignment.center,
+                padding: EdgeInsets.symmetric(horizontal: compact ? 14 : 17),
+                decoration: BoxDecoration(color: on ? C.navy : C.fill, borderRadius: BorderRadius.circular(22)),
                 child: Text(label, style: sans(14.5, weight: FontWeight.w500, color: on ? C.ground : C.ink)),
               ),
             ),

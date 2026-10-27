@@ -33,6 +33,12 @@ void main() {
     expect(p.end, closeTo(expected, 1e-6));
   });
 
+  test('money added at the end of each month matches the ordinary annuity', () {
+    final i = math.pow(1.065, 1 / 12) - 1;
+    final p = project(start: {}, mix: mix, monthly: 300, months: 240, yearlyReturn: {Kind.fund: 6.5}, addAt: 1);
+    expect(p.end, closeTo(300 * (math.pow(1 + i, 240) - 1) / i, 1e-6));
+  });
+
   test('one-off lands in its month and is split by the mix', () {
     final p = project(
       start: {},

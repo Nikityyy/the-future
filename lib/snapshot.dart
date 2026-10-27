@@ -137,6 +137,18 @@ class Snapshot {
     return sum;
   }
 
+  /// The day of the month your money usually goes in: the middle day of your
+  /// buys in the half year before the snapshot, or null without any.
+  int? get buyDay {
+    final from = generatedAt.subtract(const Duration(days: 183));
+    final days = [
+      for (final t in trades)
+        if (t.side == 'buy')
+          if (DateTime.tryParse(t.date)?.toLocal() case final d? when d.isAfter(from)) d.day,
+    ]..sort();
+    return days.isEmpty ? null : days[days.length ~/ 2];
+  }
+
   double get value => holdings.fold(0, (a, h) => a + h.value);
   double get invested => holdings.fold(0, (a, h) => a + h.invested);
   double get gain => value - invested;

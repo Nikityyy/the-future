@@ -130,6 +130,7 @@ String exportMarkdown(AppState state, DateTime now) {
         oneOffs: state.oneOffsNow,
         realTerms: real,
         inflation: state.inflation,
+        addAt: state.addAt,
       );
   line('Projected value of the whole portfolio in ${state.years} years (${now.year + state.years}):');
   line();
@@ -148,6 +149,7 @@ String exportMarkdown(AppState state, DateTime now) {
       }(),
     ],
   );
-  line('The projection adds money at the start of each month and compounds monthly at the yearly rates above. It is a simple model, not a forecast.');
+  final day = s.buyDay;
+  line('The projection adds the monthly amount ${day == null ? 'at the start of each month' : 'on day $day of each month, the day purchases usually happened'} and compounds monthly at the yearly rates above. It is a simple model, not a forecast.');
   return b.toString();
 }

@@ -39,8 +39,9 @@ class Projection {
   double get growth => end - contributed.last;
 }
 
-/// Month by month: money is added at the start of the month, then the month's
-/// growth applies. [monthly] rises by [raisePercent] each year. With
+/// Month by month. The monthly amount goes in [addAt] of the way into each
+/// month (0 at once, 1 at its end) and grows only for the rest of it; one-offs
+/// go in at the start. [monthly] rises by [raisePercent] each year. With
 /// [realTerms] every month's value is divided by the [inflation] from today
 /// to that month, so it reads in today's money. (Taking inflation off the
 /// return instead would be wrong for money added later: a euro added in
@@ -55,6 +56,7 @@ Projection project({
   List<OneOff> oneOffs = const [],
   bool realTerms = false,
   double inflation = defaultInflation,
+  double addAt = 0,
 }) {
   final bal = {for (final k in Kind.values) k: start[k] ?? 0};
   final rate = {for (final k in Kind.values) k: math.pow(1 + (yearlyReturn[k] ?? 0) / 100, 1 / 12).toDouble() - 1};
@@ -63,11 +65,12 @@ Projection project({
   final contributed = <double>[values.first];
   var put = values.first;
   for (var m = 1; m <= months; m++) {
-    final add = monthly * math.pow(1 + raisePercent / 100, (m - 1) ~/ 12) +
-        oneOffs.where((o) => o.monthsFromNow == m).fold(0.0, (a, o) => a + o.amount);
-    put += add;
+    final regular = monthly * math.pow(1 + raisePercent / 100, (m - 1) ~/ 12);
+    final once = oneOffs.where((o) => o.monthsFromNow == m).fold(0.0, (a, o) => a + o.amount);
+    put += regular + once;
     for (final k in Kind.values) {
-      bal[k] = (bal[k]! + add * (mix[k] ?? 0)) * (1 + rate[k]!);
+      final share = mix[k] ?? 0;
+      bal[k] = (bal[k]! + once * share) * (1 + rate[k]!) + regular * share * math.pow(1 + rate[k]!, 1 - addAt);
     }
     values.add(bal.values.fold(0.0, (a, b) => a + b) / deflate(m));
     contributed.add(put / deflate(m));

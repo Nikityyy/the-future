@@ -245,7 +245,7 @@ class _LockScreenState extends State<LockScreen> {
                   final ok = await confirmSheet(context, title: 'Disconnect?', message: 'This erases your PIN and the sealed portfolio on this phone. You can connect again with your passphrase.', action: 'Disconnect and erase');
                   if (ok) await widget.state.disconnect();
                 },
-                child: Text('Forgot PIN? Disconnect', style: sans(14, color: C.ink2)),
+                child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13), child: Text('Forgot PIN? Disconnect', style: sans(14, color: C.ink2))),
               ),
             ),
           ),
