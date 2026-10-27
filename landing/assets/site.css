@@ -54,8 +54,12 @@ p { margin: 0; text-wrap: pretty; }
 .actions { margin-top: 36px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px; }
 .fine { margin-top: 22px; font-size: 15px; color: var(--ink-3); }
 
-.phone { width: min(100%, 330px); margin-inline: auto; padding: 9px; border-radius: 52px; background: #1d2433; box-shadow: 0 50px 80px -30px rgba(38, 50, 72, 0.45), 0 0 0 1.5px rgba(255, 255, 255, 0.06) inset; }
-.phone img { border-radius: 43px; width: 100%; aspect-ratio: 390 / 844; background: var(--ground); }
+.phone { position: relative; width: min(100%, 330px); margin-inline: auto; padding: 11px; border-radius: 56px; background: linear-gradient(145deg, #5a5f69 0%, #2b2f38 18%, #14171d 50%, #2b2f38 82%, #5a5f69 100%); box-shadow: 0 0 0 1px #0b0d11, 0 0 0 2.5px rgba(255, 255, 255, 0.14) inset, 0 2px 0 rgba(255, 255, 255, 0.16) inset, 0 60px 90px -34px rgba(38, 50, 72, 0.5); }
+.phone::before, .phone::after { content: ""; position: absolute; width: 4px; border-radius: 2px; background: linear-gradient(#4a4f59, #22252c); }
+.phone::before { left: -3px; top: 16%; height: 7%; box-shadow: 0 54px 0 0 #2b2f38, 0 116px 0 0 #2b2f38; }
+.phone::after { right: -3px; top: 25%; height: 12%; }
+.phone img { border-radius: 45px; width: 100%; aspect-ratio: 390 / 844; background: var(--ground); }
+.phone i { position: absolute; z-index: 1; top: 21px; left: 50%; width: 29%; height: 3.3%; transform: translateX(-50%); border-radius: 999px; background: #05060a; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04); }
 
 /* Sections */
 section { padding-block: clamp(64px, 10vw, 128px); }

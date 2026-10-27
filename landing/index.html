@@ -35,7 +35,7 @@
         </div>
         <p class="fine rise" style="--d:.85s">Free. No account. Your numbers stay on your phone.</p>
       </div>
-      <div class="phone rise" style="--d:.4s"><img src="assets/future.webp" width="780" height="1688" alt="The Future app on a phone: an estimated value in 20 years of €296,877, a growth curve and a ruler to set the monthly amount."></div>
+      <div class="phone rise" style="--d:.4s"><i aria-hidden="true"></i><img src="assets/future.webp" width="780" height="1688" alt="The Future app on a phone: an estimated value in 20 years of €296,877, a growth curve and a ruler to set the monthly amount."></div>
     </div>
 
     <hr class="rule">
@@ -93,7 +93,7 @@
         <ol class="list steps">
           <li class="rise"><h3>Create a read-only key</h3><p>In Bitpanda, under Account and API keys, give the key the Read scope only. Without Trade it cannot buy, sell or withdraw anything. You can delete it at any time.</p></li>
           <li class="rise"><h3>Put it in your own repository</h3><p>Fork the project on GitHub and add two secrets: the key, and a long passphrase of your own. GitHub reads your portfolio every three hours, seals it with the passphrase and publishes only the sealed file.</p></li>
-          <li class="rise"><h3>Open the app and enter the passphrase</h3><p>The app opens the sealed file on your phone, then asks for a six digit PIN. From then on the PIN is all you type.</p></li>
+          <li class="rise"><h3>Open the app and enter the passphrase</h3><p>The app opens the sealed file on your phone, then asks for a six digit PIN. Turn on Face ID in the app and even the PIN stays in your pocket.</p></li>
         </ol>
       </div>
     </section>
@@ -106,12 +106,12 @@
           <ul class="list claims">
             <li class="rise"><h3>The key can only read</h3><p>Bitpanda keys have scopes. This one has the Read scope and nothing else.</p></li>
             <li class="rise"><h3>The key never reaches your phone</h3><p>It lives in a GitHub secret. Your phone only ever receives a sealed file, locked with AES-256 and a key stretched from your passphrase 600,000 times.</p></li>
-            <li class="rise"><h3>A PIN guards the app</h3><p>The passphrase is sealed on your phone under your PIN, and the app locks itself two minutes after you leave it.</p></li>
+            <li class="rise"><h3>A PIN or your face guards the app</h3><p>The passphrase is sealed on your phone under your PIN, or under a passkey that Face ID, Touch ID or your fingerprint unlocks. The app locks itself two minutes after you leave it.</p></li>
             <li class="rise"><h3>Open source, no tracking</h3><p>No account, no analytics, no ads. Read every line on <a href="https://github.com/Nikityyy/the-future">GitHub</a>.</p></li>
           </ul>
           <p class="note rise">The sealed file is public, as GitHub Pages is. Only your passphrase opens it, so choose four random words rather than a name or a date.</p>
         </div>
-        <div class="phone rise"><img src="assets/lock.webp" width="780" height="1688" alt="The lock screen of the app: a six digit PIN pad."></div>
+        <div class="phone rise"><i aria-hidden="true"></i><img src="assets/lock.webp" width="780" height="1688" alt="The lock screen of the app: a six digit PIN pad."></div>
       </div>
     </section>
 
