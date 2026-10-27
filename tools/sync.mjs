@@ -19,7 +19,11 @@ async function get(path, params = {}) {
   const url = new URL(BASE + path);
   for (const [k, v] of Object.entries(params)) if (v != null) url.searchParams.set(k, v);
   const res = await fetch(url, { headers: { 'x-api-key': key } });
-  if (!res.ok) throw new Error(`${path} answered ${res.status}`);
+  if (!res.ok) {
+    // The answer is an error message, never your data, so it is safe in the log.
+    const body = (await res.text()).replace(/\s+/g, ' ').slice(0, 300);
+    throw new Error(`${path} answered ${res.status}: ${body}`);
+  }
   return res.json();
 }
 
@@ -35,6 +39,15 @@ async function pages(path, params) {
   return all;
 }
 
+try {
+  await run();
+} catch (e) {
+  // ::error:: shows the reason on the run page, not only in the raw log.
+  console.log(`::error title=Bitpanda sync failed::${String(e?.message ?? e).replace(/\s+/g, ' ')}`);
+  process.exit(1);
+}
+
+async function run() {
 const portfolio = (await get('/portfolio')).data ?? [];
 const ids = [...new Set(portfolio.map((p) => p.asset_id))];
 const assets = [];
@@ -45,3 +58,4 @@ const snapshot = buildSnapshot({ portfolio, assets, operations });
 console.log(`Synced ${snapshot.holdings.length} holdings and ${operations.length} operations.`);
 await mkdir(dirname(out), { recursive: true });
 await writeFile(out, JSON.stringify(seal(snapshot, pass)));
+}
