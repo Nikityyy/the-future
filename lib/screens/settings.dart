@@ -53,11 +53,11 @@ class SettingsPage extends StatelessWidget {
               SliverToBoxAdapter(
                 child: Group(
                   header: 'ABOUT',
+                  footer: 'Made by Nikita Berger. Not affiliated with Bitpanda. Projections are not financial advice.',
                   children: [
                     Row2(title: 'Version', trailing: Text(AppVersion.label, style: figures(sans(15, color: C.ink2)))),
                     Row2(title: 'Source code', subtitle: 'github.com/Nikityyy/the-future', chevron: true, onTap: () => launchUrl(Uri.parse('https://github.com/Nikityyy/the-future'), mode: LaunchMode.externalApplication)),
                   ],
-                  footer: 'Made by Nikita Berger. Not affiliated with Bitpanda. Projections are not financial advice.',
                 ),
               ),
               SliverToBoxAdapter(child: SizedBox(height: Dock.clearance(context) + browserSafeArea().top)),

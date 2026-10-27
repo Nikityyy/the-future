@@ -44,7 +44,7 @@ class _Round extends StatelessWidget {
       );
 }
 
-String _pct(double v) => '${v.toStringAsFixed(v % 1 == 0 ? 0 : 1)}%';
+String _pct(double v) => '${v < 0 ? '−' : ''}${v.abs().toStringAsFixed(v % 1 == 0 ? 0 : 1)}%';
 
 /// Returns per asset type and scenario, inflation and the yearly raise.
 class AssumptionsSheet extends StatelessWidget {
@@ -82,7 +82,7 @@ class AssumptionsSheet extends StatelessWidget {
                       trailing: _Switch(state.realTerms, (v) => state.setPlan(realTerms: v)),
                     ),
                     Row2(title: 'Inflation', trailing: _Stepper(text: _pct(state.inflation), onMinus: () => state.setPlan(inflation: (state.inflation - 0.5).clamp(0, 10)), onPlus: () => state.setPlan(inflation: (state.inflation + 0.5).clamp(0, 10)))),
-                    Row2(title: 'Raise the amount yearly', subtitle: 'Add more each year, such as with your pay', trailing: _Stepper(text: _pct(state.raisePercent), onMinus: () => state.setPlan(raisePercent: (state.raisePercent - 1).clamp(0, 30)), onPlus: () => state.setPlan(raisePercent: (state.raisePercent + 1).clamp(0, 30)))),
+                    Row2(title: 'Yearly raise', subtitle: 'Add more each year, such as with your pay', trailing: _Stepper(text: _pct(state.raisePercent), onMinus: () => state.setPlan(raisePercent: (state.raisePercent - 1).clamp(0, 30)), onPlus: () => state.setPlan(raisePercent: (state.raisePercent + 1).clamp(0, 30)))),
                   ],
                 ),
               ),

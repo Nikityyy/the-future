@@ -179,7 +179,7 @@ class _TitleDelegate extends SliverPersistentHeaderDelegate {
         child: Row(
           children: [
             Expanded(child: Text(title, style: serif(size, tracking: -size * 0.02))),
-            if (trailing != null) trailing!,
+            ?trailing,
           ],
         ),
       ),

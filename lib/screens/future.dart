@@ -130,12 +130,12 @@ class FuturePage extends StatelessWidget {
               SliverToBoxAdapter(
                 child: Group(
                   header: 'YOUR PLAN',
+                  footer: 'A projection, not a forecast: real returns vary, crypto most of all. Taxes and fees are not included. Not financial advice.',
                   children: [
                     Row2(title: 'One-time additions', trailing: Text(state.oneOffs.isEmpty ? 'None' : '${state.oneOffs.length}', style: sans(15, color: C.ink2)), chevron: true, onTap: () => showSheet<void>(context, (_) => OneOffsSheet(state))),
-                    Row2(title: 'Raise the amount each year', trailing: Text(state.raisePercent == 0 ? 'Off' : '${state.raisePercent.toStringAsFixed(state.raisePercent % 1 == 0 ? 0 : 1)}%', style: sans(15, color: C.ink2)), chevron: true, onTap: () => showSheet<void>(context, (_) => AssumptionsSheet(state))),
+                    Row2(title: 'Yearly raise', trailing: Text(state.raisePercent == 0 ? 'Off' : '${state.raisePercent.toStringAsFixed(state.raisePercent % 1 == 0 ? 0 : 1)}%', style: sans(15, color: C.ink2)), chevron: true, onTap: () => showSheet<void>(context, (_) => AssumptionsSheet(state))),
                     Row2(title: 'Assumptions', subtitle: 'Returns per asset type, inflation', chevron: true, onTap: () => showSheet<void>(context, (_) => AssumptionsSheet(state))),
                   ],
-                  footer: 'A projection, not a forecast: real returns vary, crypto most of all. Taxes and fees are not included. Not financial advice.',
                 ),
               ),
               SliverToBoxAdapter(child: SizedBox(height: Dock.clearance(context) + browserSafeArea().top)),

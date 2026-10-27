@@ -1,0 +1,103 @@
+name: Test and deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+  # Every three hours: reads Bitpanda again and publishes a fresh sealed snapshot.
+  schedule:
+    - cron: "17 */3 * * *"
+
+# Pushes to main queue up and always finish; only superseded pull request
+# runs are cancelled.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.ref) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: npm test
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+
+      - name: Read version
+        id: version
+        run: |
+          NAME=$(sed -n 's/^version: *\([0-9][0-9.]*\).*/\1/p' pubspec.yaml)
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      # The version shown in You: the pubspec version, the run number and the commit.
+      - name: Build Flutter web (PWA)
+        run: >
+          flutter build web --release --base-href /${{ github.event.repository.name }}/app/ --no-web-resources-cdn
+          --build-number=${{ github.run_number }}
+          --dart-define=APP_VERSION=${{ steps.version.outputs.name }}
+          --dart-define=APP_BUILD=${{ github.run_number }}
+          --dart-define=APP_COMMIT=${{ github.sha }}
+
+      - name: Generate service worker
+        run: npx --yes workbox-cli@7.3.0 generateSW workbox-config.cjs
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site/app
+          cp -r landing/. _site/
+          cp -r build/web/. _site/app/
+          touch _site/.nojekyll
+
+      # Deploying replaces the whole site, so start from the snapshot that is
+      # live now: if Bitpanda cannot be reached this time, nothing is lost.
+      - name: Keep the live snapshot
+        run: curl -fsSL "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/app/data.enc" -o _site/app/data.enc || rm -f _site/app/data.enc
+
+      # Reads the portfolio with the read-only key and seals it with the passphrase.
+      # Skipped, not failed, until both secrets exist.
+      - name: Sync Bitpanda
+        env:
+          BITPANDA_API_KEY: ${{ secrets.BITPANDA_API_KEY }}
+          SYNC_PASSPHRASE: ${{ secrets.SYNC_PASSPHRASE }}
+        run: node tools/sync.mjs _site/app/data.enc
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

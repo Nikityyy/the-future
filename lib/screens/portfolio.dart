@@ -120,10 +120,12 @@ class _Allocation extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 30),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: SizedBox(
+              width: double.infinity,
               height: 12,
               child: Row(
                 children: [
