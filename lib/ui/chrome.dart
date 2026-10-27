@@ -1,5 +1,5 @@
 
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart' show CupertinoIcons, CupertinoPageRoute;
 import 'package:flutter/widgets.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
@@ -60,6 +60,38 @@ Future<T?> showSheet<T>(BuildContext context, WidgetBuilder builder) {
     settings: LiquidGlassSettings(glassColor: C.ground.withValues(alpha: 0.9), blur: 18, thickness: 22),
     builder: (context) => SizedBox(height: MediaQuery.sizeOf(context).height * 0.88, child: builder(context)),
   );
+}
+
+/// A full page that slides in from the right, with the iPhone back swipe.
+Future<T?> showPage<T>(BuildContext context, WidgetBuilder builder) {
+  Haptics.tick();
+  return Navigator.of(context, rootNavigator: true).push<T>(
+    CupertinoPageRoute<T>(builder: (context) => ColoredBox(color: C.ground, child: builder(context))),
+  );
+}
+
+/// The glass back button at the top left of a pushed page.
+class BackBar extends StatelessWidget {
+  const BackBar({super.key, this.onBack});
+
+  final VoidCallback? onBack;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: EdgeInsets.fromLTRB(16, 10 + browserSafeArea().top, 16, 0),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: GlassIconButton(
+            size: 44,
+            semanticLabel: 'Back',
+            icon: const Icon(CupertinoIcons.chevron_left, size: 20, color: C.ink),
+            onPressed: () {
+              Haptics.tick();
+              (onBack ?? () => Navigator.of(context).maybePop())();
+            },
+          ),
+        ),
+      );
 }
 
 /// The sheet's scroll controller, so dragging down from the top closes it.

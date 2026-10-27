@@ -93,9 +93,8 @@ class _ConnectSheetState extends State<ConnectSheet> {
 
   /// The passphrase on a page of its own: the field sits at the top, well above the keyboard.
   Widget _entry() => CustomScrollView(
-        controller: SheetScroll.of(context),
         slivers: [
-          SliverToBoxAdapter(child: SheetHeaderBar(top: browserSafeArea().top)),
+          SliverToBoxAdapter(child: BackBar(onBack: () => setState(() => _entering = false))),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 6, 24, 18),
@@ -136,16 +135,6 @@ class _ConnectSheetState extends State<ConnectSheet> {
                   if (_error != null) Padding(padding: const EdgeInsets.fromLTRB(4, 10, 4, 0), child: Text(_error!, style: sans(13.5, color: C.loss, height: 1.4))),
                   const SizedBox(height: 18),
                   AppButton('Open my portfolio', busy: _busy, onTap: _check),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: PillButton(
-                      'Back',
-                      onTap: () => setState(() {
-                        _entering = false;
-                        _error = null;
-                      }),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -159,7 +148,10 @@ class _ConnectSheetState extends State<ConnectSheet> {
     if (_passphrase != null) {
       return Column(
         children: [
-          SizedBox(height: 14 + browserSafeArea().top),
+          BackBar(onBack: () => setState(() {
+            _passphrase = null;
+            _firstPin = null;
+          })),
           Expanded(
             child: PinPad(
               key: ValueKey(_firstPin == null),
@@ -173,9 +165,8 @@ class _ConnectSheetState extends State<ConnectSheet> {
     }
     if (_entering) return _entry();
     return CustomScrollView(
-      controller: SheetScroll.of(context),
       slivers: [
-        SliverToBoxAdapter(child: SheetHeaderBar(top: browserSafeArea().top)),
+        const SliverToBoxAdapter(child: BackBar()),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 6, 24, 22),
@@ -209,30 +200,19 @@ class _ConnectSheetState extends State<ConnectSheet> {
           ),
         ),
         SliverToBoxAdapter(
-          child: Group(
-            header: 'STEP 3',
-            children: [
-              Row2(title: 'Enter your passphrase', subtitle: 'Opens your portfolio on this phone', chevron: true, onTap: () => setState(() => _entering = true)),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+            child: Column(
+              children: [
+                AppButton('Continue', onTap: () => setState(() => _entering = true)),
+                const SizedBox(height: 10),
+                Text('Done steps 1 and 2? Next you enter your passphrase.', style: sans(13, color: C.ink2), textAlign: TextAlign.center),
+              ],
+            ),
           ),
         ),
         SliverToBoxAdapter(child: SizedBox(height: 40 + browserSafeArea().bottom)),
       ],
     );
   }
-}
-
-/// A grabber and a close button at the top of a sheet.
-class SheetHeaderBar extends StatelessWidget {
-  const SheetHeaderBar({super.key, this.top = 0});
-  final double top;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: EdgeInsets.fromLTRB(20, top, 20, 0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [PillButton('Close', onTap: () => Navigator.of(context).maybePop())],
-        ),
-      );
 }

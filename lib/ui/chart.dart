@@ -133,8 +133,10 @@ class _Painter extends CustomPainter {
     final grid = Paint()
       ..color = C.ink.withValues(alpha: 0.12)
       ..strokeWidth = 1;
-    for (var g = 0; g <= 4; g++) {
-      final v = yMax * g / 4;
+    // A short chart gets fewer lines so the labels never touch.
+    final lines = plot.height < 160 ? 2 : 4;
+    for (var g = 0; g <= lines; g++) {
+      final v = yMax * g / lines;
       final gy = y(v);
       _dotted(canvas, Offset(plot.left, gy), Offset(plot.right, gy), grid);
       _text(canvas, _short(v), Offset(plot.left - 8, gy), C.ink3, align: 1);
