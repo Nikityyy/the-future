@@ -1,10 +1,11 @@
 import 'package:flutter/widgets.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../platform/haptics.dart';
 import '../platform/web_glue.dart';
 import '../theme.dart';
 
-/// A grouped list: one rounded surface, hairlines between the rows.
+/// A grouped list: an inset Liquid Glass section with our own header and footer.
 class Group extends StatelessWidget {
   const Group({super.key, this.header, this.footer, required this.children});
 
@@ -23,19 +24,11 @@ class Group extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
                 child: Text(header!, style: sans(13, weight: FontWeight.w500, color: C.ink2, tracking: 0.1)),
               ),
-            DecoratedBox(
-              decoration: BoxDecoration(color: C.raised, borderRadius: BorderRadius.circular(22), border: Border.all(color: C.rule.withValues(alpha: 0.06))),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(22),
-                child: Column(
-                  children: [
-                    for (var i = 0; i < children.length; i++) ...[
-                      if (i > 0) Container(height: 0.5, margin: const EdgeInsets.only(left: 18), color: C.rule),
-                      children[i],
-                    ],
-                  ],
-                ),
-              ),
+            GlassGroupedSection(
+              surfaceStyle: GlassSurfaceStyle.solid,
+              margin: EdgeInsets.zero,
+              dividerIndent: 18,
+              children: children,
             ),
             if (footer != null)
               Padding(
@@ -47,7 +40,8 @@ class Group extends StatelessWidget {
       );
 }
 
-class Row2 extends StatefulWidget {
+/// One row of a [Group]: a Liquid Glass list tile in our type.
+class Row2 extends StatelessWidget {
   const Row2({super.key, required this.title, this.subtitle, this.trailing, this.subtrailing, this.leading, this.onTap, this.chevron = false, this.titleColor = C.ink});
 
   final String title;
@@ -60,53 +54,33 @@ class Row2 extends StatefulWidget {
   final Color titleColor;
 
   @override
-  State<Row2> createState() => _Row2State();
-}
-
-class _Row2State extends State<Row2> {
-  bool _down = false;
-
-  @override
   Widget build(BuildContext context) {
-    final row = AnimatedContainer(
-      duration: const Duration(milliseconds: 90),
-      color: _down ? C.fill : const Color(0x00000000),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      child: Row(
-        children: [
-          if (widget.leading != null) Padding(padding: const EdgeInsets.only(right: 14), child: widget.leading),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    final end = trailing != null || subtrailing != null || chevron;
+    return GlassListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+      leading: leading,
+      title: Text(title, style: sans(16, color: titleColor, weight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: subtitle == null ? null : Padding(padding: const EdgeInsets.only(top: 2), child: Text(subtitle!, style: sans(13, color: C.ink2), maxLines: 2)),
+      trailing: !end
+          ? null
+          : Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(widget.title, style: sans(16, color: widget.titleColor, weight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
-                if (widget.subtitle != null) Padding(padding: const EdgeInsets.only(top: 2), child: Text(widget.subtitle!, style: sans(13, color: C.ink2), maxLines: 2)),
+                if (trailing != null || subtrailing != null)
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [?trailing, ?subtrailing],
+                  ),
+                if (chevron) const Padding(padding: EdgeInsets.only(left: 8), child: _Chevron()),
               ],
             ),
-          ),
-          if (widget.trailing != null || widget.subtrailing != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [if (widget.trailing != null) widget.trailing!, if (widget.subtrailing != null) widget.subtrailing!],
-              ),
-            ),
-          if (widget.chevron) const Padding(padding: EdgeInsets.only(left: 8), child: _Chevron()),
-        ],
-      ),
-    );
-    if (widget.onTap == null) return row;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _down = true),
-      onTapUp: (_) => setState(() => _down = false),
-      onTapCancel: () => setState(() => _down = false),
-      onTap: () {
-        Haptics.tick();
-        widget.onTap!();
-      },
-      child: row,
+      onTap: onTap == null
+          ? null
+          : () {
+              Haptics.tick();
+              onTap!();
+            },
     );
   }
 }

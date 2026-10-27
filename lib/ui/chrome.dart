@@ -1,14 +1,13 @@
 
-import 'package:flutter/cupertino.dart'
-    show CupertinoIcons, CupertinoSheetRoute;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/widgets.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../platform/haptics.dart';
 import '../platform/web_glue.dart';
 import '../theme.dart';
-import 'basics.dart';
 
-/// Floating glass tab bar. Only the navigation layer is glass.
+/// The Liquid Glass tab bar, floating over the pages.
 class Dock extends StatelessWidget {
   const Dock({super.key, required this.index, required this.onSelect});
 
@@ -18,96 +17,48 @@ class Dock extends StatelessWidget {
   static const items = [
     (CupertinoIcons.chart_pie, CupertinoIcons.chart_pie_fill, 'Portfolio'),
     (CupertinoIcons.graph_square, CupertinoIcons.graph_square_fill, 'Future'),
-    (
-      CupertinoIcons.slider_horizontal_3,
-      CupertinoIcons.slider_horizontal_3,
-      'You',
-    ),
+    (CupertinoIcons.person_crop_circle, CupertinoIcons.person_crop_circle_fill, 'You'),
   ];
 
-  /// Room a page keeps free at its end so content scrolls clear of the dock.
-  static double clearance(BuildContext context) =>
-      96 + browserSafeArea().bottom;
+  /// Room a page keeps free at its end so content scrolls clear of the bar.
+  static double clearance(BuildContext context) => 104 + browserSafeArea().bottom;
 
   @override
-  Widget build(BuildContext context) {
-    final bottom = browserSafeArea().bottom;
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 12 + bottom,
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: C.raised.withValues(alpha: 0.96),
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: C.ink.withValues(alpha: 0.08)),
-            boxShadow: [
-              BoxShadow(
-                color: C.ink.withValues(alpha: 0.10),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var i = 0; i < items.length; i++)
-                Pressable(
-                  scale: 0.94,
-                  semanticLabel: items[i].$3,
-                  onTap: () => onSelect(i),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 260),
-                    curve: Curves.easeOutCubic,
-                    width: 92,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: i == index ? C.navy : const Color(0x00000000),
-                      borderRadius: BorderRadius.circular(26),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          i == index ? items[i].$2 : items[i].$1,
-                          size: 22,
-                          color: i == index ? C.ground : C.ink2,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          items[i].$3,
-                          style: sans(
-                            10.5,
-                            weight: FontWeight.w500,
-                            color: i == index ? C.ground : C.ink2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
+  Widget build(BuildContext context) => Positioned(
+        left: 0,
+        right: 0,
+        bottom: browserSafeArea().bottom,
+        child: GlassTabBar.bottom(
+          tabs: [for (final t in items) GlassTab(icon: Icon(t.$1), activeIcon: Icon(t.$2), label: t.$3)],
+          selectedIndex: index,
+          onTabSelected: (i) {
+            if (i != index) Haptics.selection();
+            onSelect(i);
+          },
+          horizontalPadding: 28,
+          verticalPadding: 14,
+          selectedIconColor: C.navy,
+          unselectedIconColor: C.ink2,
+          selectedLabelColor: C.navy,
+          unselectedLabelColor: C.ink2,
+          textStyle: sans(10.5, weight: FontWeight.w600),
+          iconSize: 23,
         ),
-      ),
-    );
-  }
+      );
 }
 
-/// A full page that pushes the one below it back, like an iPhone sheet.
+/// A Liquid Glass sheet that rises over the page and closes with a drag down.
 Future<T?> showSheet<T>(BuildContext context, WidgetBuilder builder) {
   Haptics.tick();
-  return Navigator.of(context, rootNavigator: true).push<T>(
-    CupertinoSheetRoute<T>(
-      showDragHandle: true,
-      scrollableBuilder: (context, controller) => SheetScroll(
-        controller,
-        child: ColoredBox(color: C.ground, child: builder(context)),
-      ),
-    ),
+  return GlassSheet.show<T>(
+    context: context,
+    useRootNavigator: true,
+    isScrollable: false,
+    showDragIndicator: true,
+    dragIndicatorColor: C.ink3,
+    margin: const EdgeInsets.fromLTRB(6, 0, 6, 6),
+    settings: LiquidGlassSettings(glassColor: C.ground.withValues(alpha: 0.9), blur: 18, thickness: 22),
+    builder: (context) => SizedBox(height: MediaQuery.sizeOf(context).height * 0.88, child: builder(context)),
   );
 }
 
@@ -134,102 +85,56 @@ class SheetHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(24, 22, 20, 8),
-    child: Row(
-      children: [
-        Expanded(child: Text(title, style: serif(30))),
-        Pressable(
-          onTap: onAction ?? () => Navigator.of(context).maybePop(),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-            decoration: BoxDecoration(
-              color: C.fill,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              action ?? 'Done',
-              style: sans(15, weight: FontWeight.w500),
-            ),
-          ),
+        padding: const EdgeInsets.fromLTRB(24, 4, 20, 8),
+        child: Row(
+          children: [
+            Expanded(child: Text(title, style: serif(30))),
+            PillButton(action ?? 'Done', onTap: onAction ?? () => Navigator.of(context).maybePop()),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 }
 
-/// Segmented control with a gliding thumb.
+/// A small glass capsule with a word on it, like Done or Close.
+class PillButton extends StatelessWidget {
+  const PillButton(this.label, {super.key, required this.onTap, this.strong = false});
+
+  final String label;
+  final VoidCallback onTap;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) => GlassButton.custom(
+        onTap: () {
+          Haptics.tick();
+          onTap();
+        },
+        label: label,
+        height: 38,
+        width: label.length * 8.5 + 34,
+        shape: const LiquidRoundedSuperellipse(borderRadius: 19),
+        child: Text(label, style: sans(15, weight: strong ? FontWeight.w600 : FontWeight.w500, color: C.ink)),
+      );
+}
+
+/// Liquid Glass segmented control.
 class Segments extends StatelessWidget {
-  const Segments({
-    super.key,
-    required this.labels,
-    required this.index,
-    required this.onChanged,
-  });
+  const Segments({super.key, required this.labels, required this.index, required this.onChanged});
 
   final List<String> labels;
   final int index;
   final ValueChanged<int> onChanged;
 
   @override
-  Widget build(BuildContext context) => Container(
-    height: 40,
-    padding: const EdgeInsets.all(3),
-    decoration: BoxDecoration(
-      color: C.fill,
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: LayoutBuilder(
-      builder: (context, box) {
-        final w = box.maxWidth / labels.length;
-        return Stack(
-          children: [
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutBack,
-              left: w * index,
-              width: w,
-              top: 0,
-              bottom: 0,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: C.raised,
-                  borderRadius: BorderRadius.circular(17),
-                  boxShadow: [
-                    BoxShadow(
-                      color: C.ink.withValues(alpha: 0.12),
-                      blurRadius: 6,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Row(
-              children: [
-                for (var i = 0; i < labels.length; i++)
-                  Expanded(
-                    child: Pressable(
-                      scale: 0.96,
-                      onTap: () => onChanged(i),
-                      child: Center(
-                        child: Text(
-                          labels[i],
-                          style: sans(
-                            14,
-                            weight: i == index
-                                ? FontWeight.w600
-                                : FontWeight.w500,
-                            color: i == index ? C.ink : C.ink2,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        );
-      },
-    ),
-  );
+  Widget build(BuildContext context) => GlassSegmentedControl(
+        segments: [for (final l in labels) GlassSegment(label: l)],
+        selectedIndex: index,
+        onSegmentSelected: (i) {
+          if (i != index) Haptics.selection();
+          onChanged(i);
+        },
+        height: 40,
+        selectedTextStyle: sans(14, weight: FontWeight.w600, color: C.ink),
+        unselectedTextStyle: sans(14, weight: FontWeight.w500, color: C.ink2),
+      );
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../platform/haptics.dart';
 import '../platform/web_glue.dart';
@@ -62,19 +63,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ],
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (var i = 0; i < 3; i++)
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 280),
-                    curve: Curves.easeOutCubic,
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    width: i == _page ? 18 : 6,
-                    height: 6,
-                    decoration: BoxDecoration(color: i == _page ? C.ink : C.ink.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(3)),
-                  ),
-              ],
+            GlassPageControl(
+              count: 3,
+              currentPage: _page,
+              height: 30,
+              activeColor: C.ink,
+              inactiveColor: C.ink.withValues(alpha: 0.22),
+              onPageChanged: (i) => _pages.animateToPage(i, duration: const Duration(milliseconds: 420), curve: Curves.easeOutCubic),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),

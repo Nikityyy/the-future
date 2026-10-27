@@ -1,10 +1,12 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/widgets.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+
+import '../platform/haptics.dart';
 
 import '../projection.dart';
 import '../state.dart';
 import '../theme.dart';
-import 'basics.dart';
 
 const kindNames = {Kind.fund: 'Funds and stocks', Kind.crypto: 'Crypto', Kind.metal: 'Metals'};
 const kindColors = {Kind.fund: C.green, Kind.crypto: C.navy, Kind.metal: C.sand};
@@ -16,16 +18,15 @@ class EyeButton extends StatelessWidget {
   final AppState state;
 
   @override
-  Widget build(BuildContext context) => Pressable(
-        scale: 0.88,
+  Widget build(BuildContext context) => GlassIconButton(
+        size: 40,
+        quality: GlassQuality.minimal,
         semanticLabel: state.hide ? 'Show amounts' : 'Hide amounts',
-        onTap: () => state.setHide(!state.hide),
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: const BoxDecoration(color: C.fill, shape: BoxShape.circle),
-          child: Icon(state.hide ? CupertinoIcons.eye_slash : CupertinoIcons.eye, size: 21, color: C.ink),
-        ),
+        icon: Icon(state.hide ? CupertinoIcons.eye_slash : CupertinoIcons.eye, size: 20, color: C.ink),
+        onPressed: () {
+          Haptics.tick();
+          state.setHide(!state.hide);
+        },
       );
 }
 
@@ -64,21 +65,19 @@ class _Chip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(right: 8),
-        child: Pressable(
-          scale: 0.94,
-          onTap: onTap,
-          semanticLabel: label,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: on ? C.navy : const Color(0x00000000),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: on ? C.navy : C.ink.withValues(alpha: 0.2)),
-            ),
-            child: Text(label, style: sans(14.5, weight: FontWeight.w500, color: on ? C.ground : C.ink)),
+        child: Center(
+          child: GlassChip(
+            label: label,
+            selected: on,
+            quality: GlassQuality.minimal,
+            selectedColor: C.navy,
+            semanticLabel: label,
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
+            labelStyle: sans(14.5, weight: FontWeight.w500, color: on ? C.ground : C.ink),
+            onTap: () {
+              if (!on) Haptics.selection();
+              onTap();
+            },
           ),
         ),
       );

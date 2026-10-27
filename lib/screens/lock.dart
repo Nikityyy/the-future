@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../platform/haptics.dart';
 import '../platform/web_glue.dart';
@@ -102,25 +103,31 @@ class _PinPadState extends State<PinPad> with SingleTickerProviderStateMixin {
                       child: k.isEmpty
                           ? (widget.onBio == null
                               ? const SizedBox(width: 76, height: 76)
-                              : Pressable(
-                                  scale: 0.9,
-                                  semanticLabel: 'Unlock with biometrics',
-                                  onTap: widget.onBio,
-                                  child: const SizedBox(width: 76, height: 76, child: Center(child: CustomPaint(size: Size(34, 34), painter: FaceIdPainter()))),
+                              : GlassButton.custom(
+                                  label: 'Unlock with biometrics',
+                                  width: 76,
+                                  height: 76,
+                                  onTap: widget.onBio!,
+                                  child: const CustomPaint(size: Size(34, 34), painter: FaceIdPainter()),
                                 ))
-                          : Pressable(
-                              haptic: k != '<',
-                              scale: 0.9,
-                              semanticLabel: k == '<' ? 'Delete' : k,
-                              onTap: () => k == '<' ? _back() : _press(k),
-                              child: Container(
-                                width: 76,
-                                height: 76,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(shape: BoxShape.circle, color: k == '<' ? const Color(0x00000000) : C.raised, border: k == '<' ? null : Border.all(color: C.rule.withValues(alpha: 0.08))),
-                                child: k == '<' ? const _Backspace() : Text(k, style: figures(serif(32, tracking: 0))),
-                              ),
-                            ),
+                          : k == '<'
+                              ? Pressable(
+                                  haptic: false,
+                                  scale: 0.9,
+                                  semanticLabel: 'Delete',
+                                  onTap: _back,
+                                  child: const SizedBox(width: 76, height: 76, child: Center(child: _Backspace())),
+                                )
+                              : GlassButton.custom(
+                                  label: k,
+                                  width: 76,
+                                  height: 76,
+                                  onTap: () {
+                                    Haptics.tick();
+                                    _press(k);
+                                  },
+                                  child: Text(k, style: figures(serif(32, tracking: 0))),
+                                ),
                     ),
                 ],
               ),

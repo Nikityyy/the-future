@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../format.dart';
 import '../platform/haptics.dart';
@@ -36,11 +37,15 @@ class _Round extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Pressable(
-        onTap: onTap,
-        scale: 0.88,
-        semanticLabel: label == '+' ? 'Increase' : 'Decrease',
-        child: Container(width: 34, height: 34, alignment: Alignment.center, decoration: const BoxDecoration(color: C.fill, shape: BoxShape.circle), child: Text(label, style: sans(19, color: C.ink))),
+  Widget build(BuildContext context) => GlassButton.custom(
+        onTap: () {
+          Haptics.selection();
+          onTap();
+        },
+        label: label == '+' ? 'Increase' : 'Decrease',
+        width: 34,
+        height: 34,
+        child: Text(label, style: sans(19, color: C.ink)),
       );
 }
 
@@ -119,20 +124,13 @@ class Switch2 extends StatelessWidget {
   final ValueChanged<bool> onChanged;
 
   @override
-  Widget build(BuildContext context) => Pressable(
-        scale: 0.94,
-        onTap: () => onChanged(!on),
+  Widget build(BuildContext context) => GlassSwitch(
+        value: on,
+        onChanged: onChanged,
+        activeColor: C.green,
+        width: 54,
+        height: 30,
         semanticLabel: on ? 'On' : 'Off',
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          width: 51,
-          height: 31,
-          padding: const EdgeInsets.all(2),
-          alignment: on ? Alignment.centerRight : Alignment.centerLeft,
-          decoration: BoxDecoration(color: on ? C.green : C.ink.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(16)),
-          child: Container(width: 27, height: 27, decoration: BoxDecoration(color: const Color(0xFFFFFFFF), shape: BoxShape.circle, boxShadow: [BoxShadow(color: C.ink.withValues(alpha: 0.25), blurRadius: 3, offset: const Offset(0, 1))])),
-        ),
       );
 }
 

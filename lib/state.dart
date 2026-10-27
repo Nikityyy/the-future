@@ -227,7 +227,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
     try {
       final sealed = await _fetchSealed();
-      snapshot = Snapshot.fromJson(jsonDecode(await open(sealed, _passphrase!)) as Map<String, dynamic>);
+      // The same file as the one already open: nothing to decrypt or redraw.
+      final same = snapshot != null && _prefs.getString('cache') == jsonEncode(sealed);
+      if (!same) snapshot = Snapshot.fromJson(jsonDecode(await open(sealed, _passphrase!)) as Map<String, dynamic>);
       await _prefs.setString('cache', jsonEncode(sealed));
       checkedAt = DateTime.now();
     } on SnapshotMissing {

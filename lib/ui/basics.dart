@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../format.dart';
 import '../platform/haptics.dart';
@@ -127,13 +128,15 @@ class _BlurInState extends State<BlurIn> with SingleTickerProviderStateMixin {
         child: widget.child,
         builder: (context, child) {
           final t = _t.value;
-          if (t >= 1) return child!;
           final sigma = widget.blur * (1 - t);
+          // The same widgets before, during and after: returning the bare child at
+          // the end would rebuild it from scratch, and a number would count up twice.
           return Opacity(
             opacity: t,
             child: Transform.translate(
               offset: Offset(0, widget.rise * (1 - t)),
               child: ImageFiltered(
+                enabled: sigma > 0.05,
                 imageFilter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma, tileMode: TileMode.decal),
                 child: child,
               ),
@@ -227,21 +230,29 @@ class AppButton extends StatelessWidget {
   final bool busy;
 
   @override
-  Widget build(BuildContext context) => Pressable(
-        onTap: busy ? null : onTap,
-        child: Container(
-          height: 54,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: filled ? (onTap == null ? C.ink3 : C.navy) : null,
-            border: filled ? null : Border.all(color: C.ink.withValues(alpha: 0.28)),
-            borderRadius: BorderRadius.circular(27),
-          ),
-          child: busy
-              ? SizedBox(width: 20, height: 20, child: _Spinner(color: filled ? C.ground : C.ink))
-              : Text(label, style: sans(16, weight: FontWeight.w500, color: filled ? C.ground : C.ink)),
-        ),
-      );
+  Widget build(BuildContext context) {
+    final on = onTap != null && !busy;
+    final ink = filled ? C.ground : C.ink;
+    return LayoutBuilder(
+      builder: (context, box) => GlassButton.custom(
+        onTap: () {
+          if (!on) return;
+          Haptics.tick();
+          onTap!();
+        },
+        enabled: on || busy,
+        label: label,
+        width: box.maxWidth,
+        height: 54,
+        shape: const LiquidRoundedSuperellipse(borderRadius: 27),
+        style: filled ? GlassButtonStyle.prominent : GlassButtonStyle.filled,
+        settings: filled ? LiquidGlassSettings(glassColor: (onTap == null ? C.ink3 : C.navy).withValues(alpha: 0.92), thickness: 24, blur: 6) : null,
+        child: busy
+            ? SizedBox(width: 20, height: 20, child: _Spinner(color: ink))
+            : Text(label, style: sans(16, weight: FontWeight.w600, color: ink)),
+      ),
+    );
+  }
 }
 
 class _Spinner extends StatefulWidget {

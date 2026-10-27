@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:flutter/services.dart' show Clipboard;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -29,7 +30,6 @@ class ConnectSheet extends StatefulWidget {
 class _ConnectSheetState extends State<ConnectSheet> {
   final _field = TextEditingController();
   bool _busy = false;
-  bool _show = false;
   bool _entering = false;
   String? _error;
   String? _passphrase;
@@ -115,41 +115,36 @@ class _ConnectSheetState extends State<ConnectSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 18),
-                    decoration: BoxDecoration(color: C.raised, borderRadius: BorderRadius.circular(22), border: Border.all(color: C.rule.withValues(alpha: 0.06))),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: CupertinoTextField(
-                            controller: _field,
-                            autofocus: true,
-                            placeholder: 'Passphrase',
-                            placeholderStyle: sans(16, color: C.ink3),
-                            style: sans(16),
-                            obscureText: !_show,
-                            autocorrect: false,
-                            enableSuggestions: false,
-                            decoration: null,
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            onSubmitted: (_) => _check(),
-                          ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GlassPasswordField(
+                          controller: _field,
+                          autofocus: true,
+                          placeholder: 'Passphrase',
+                          placeholderStyle: sans(16, color: C.ink3),
+                          textStyle: sans(16),
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                          shape: const LiquidRoundedSuperellipse(borderRadius: 22),
+                          onSubmitted: (_) => _check(),
                         ),
-                        Pressable(onTap: _paste, child: Padding(padding: const EdgeInsets.fromLTRB(10, 8, 6, 8), child: Text('Paste', style: sans(14, weight: FontWeight.w500, color: C.navy)))),
-                        Pressable(onTap: () => setState(() => _show = !_show), child: Padding(padding: const EdgeInsets.fromLTRB(8, 8, 0, 8), child: Text(_show ? 'Hide' : 'Show', style: sans(14, color: C.ink2)))),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 10),
+                      PillButton('Paste', onTap: _paste),
+                    ],
                   ),
                   if (_error != null) Padding(padding: const EdgeInsets.fromLTRB(4, 10, 4, 0), child: Text(_error!, style: sans(13.5, color: C.loss, height: 1.4))),
                   const SizedBox(height: 18),
                   AppButton('Open my portfolio', busy: _busy, onTap: _check),
                   const SizedBox(height: 12),
-                  Pressable(
-                    onTap: () => setState(() {
-                      _entering = false;
-                      _error = null;
-                    }),
-                    child: Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Center(child: Text('Back', style: sans(15, color: C.ink2)))),
+                  Center(
+                    child: PillButton(
+                      'Back',
+                      onTap: () => setState(() {
+                        _entering = false;
+                        _error = null;
+                      }),
+                    ),
                   ),
                 ],
               ),
@@ -234,19 +229,10 @@ class SheetHeaderBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: EdgeInsets.fromLTRB(20, 16 + top, 20, 0),
+        padding: EdgeInsets.fromLTRB(20, top, 20, 0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Pressable(
-              onTap: () => Navigator.of(context).maybePop(),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                decoration: BoxDecoration(color: C.fill, borderRadius: BorderRadius.circular(20)),
-                child: Text('Close', style: sans(15, weight: FontWeight.w500)),
-              ),
-            ),
-          ],
+          children: [PillButton('Close', onTap: () => Navigator.of(context).maybePop())],
         ),
       );
 }

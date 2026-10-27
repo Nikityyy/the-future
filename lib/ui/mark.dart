@@ -27,11 +27,11 @@ class _MarkPainter extends CustomPainter {
     final k = s.width / 1024;
     canvas.drawRect(
       Offset.zero & s,
-      Paint()..shader = ui.Gradient.linear(Offset.zero, Offset(s.width, s.height), const [Color(0xFF37486A), Color(0xFF18202F)]),
+      Paint()..shader = ui.Gradient.linear(Offset.zero, Offset(0, s.height), const [Color(0xFF232D44), Color(0xFF0F1420)]),
     );
     final c = Offset(716 * k, 318 * k);
     final ring = Paint()
-      ..color = const Color(0xFFF8F5EC).withValues(alpha: 0.085)
+      ..color = const Color(0xFFF8F5EC).withValues(alpha: 0.06)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3 * k;
     for (var r = 150.0; r <= 865; r += 65) {

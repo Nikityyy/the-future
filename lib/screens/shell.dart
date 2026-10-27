@@ -21,6 +21,15 @@ class _ShellState extends State<Shell> {
   final _visited = {0};
 
   @override
+  void initState() {
+    super.initState();
+    // Build the other tabs off screen once the first is shown, so a switch never waits on them.
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) setState(() => _visited.addAll({1, 2}));
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final pages = [PortfolioPage(widget.state), FuturePage(widget.state), SettingsPage(widget.state)];
     return ColoredBox(

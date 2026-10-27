@@ -102,7 +102,7 @@ class FuturePage extends StatelessWidget {
                     children: [
                       Expanded(child: Text('Amount you’ll add monthly', style: sans(15, weight: FontWeight.w500))),
                       if (changed)
-                        Pressable(onTap: () => state.setPlan(monthly: null), child: Text('Reset to ${eur(usual)}', style: sans(14, color: C.greenInk))),
+                        PillButton('Reset to ${eur(usual)}', onTap: () => state.setPlan(monthly: null)),
                     ],
                   ),
                 ),
