@@ -1,46 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
-  <!-- iOS meta tags & icons -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Your Bitpanda investments, and what they become if you keep going. Private, free, no account.">
+  <meta name="author" content="Nikita Berger">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#F8F5EC">
+  <meta property="og:title" content="The Future">
+  <meta property="og:description" content="Your Bitpanda investments, and what they become if you keep going.">
+  <meta property="og:image" content="icons/Icon-512.png">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="the_future">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>the_future</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="The Future">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="manifest" href="manifest.json">
+  <title>The Future</title>
+  <link rel="preload" href="assets/assets/fonts/Newsreader.ttf" as="fetch" type="font/ttf" crossorigin>
+  <link rel="preload" href="assets/assets/fonts/Geist.ttf" as="fetch" type="font/ttf" crossorigin>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: #F8F5EC; overscroll-behavior: none; }
+    * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+    input, textarea { -webkit-user-select: text; user-select: text; }
+    ::selection { background: transparent; }
+    #splash { position: fixed; inset: 0; background: #F8F5EC; z-index: 9999; display: flex; align-items: center; justify-content: center; transition: opacity .35s ease-out; }
+    #splash.fade-out { opacity: 0; pointer-events: none; }
+    #splash svg { width: 84px; height: 84px; filter: blur(8px); opacity: 0; animation: arrive .9s .1s cubic-bezier(.2,.7,.2,1) forwards; }
+    @keyframes arrive { to { filter: blur(0); opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { #splash svg { animation: none; filter: none; opacity: 1; } }
+    #safe-area-probe { position: fixed; visibility: hidden; pointer-events: none; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <div id="safe-area-probe"></div>
+  <div id="splash">
+    <svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="28" fill="#263248"/><path d="M20 74C42 72 58 60 74 28" fill="none" stroke="#F8F5EC" stroke-width="7" stroke-linecap="round"/><circle cx="74" cy="28" r="15" fill="#7BC08B" fill-opacity=".25"/><circle cx="74" cy="28" r="7.5" fill="#7BC08B"/></svg>
+  </div>
+  <script>
+    if ('serviceWorker' in navigator) {
+      const notifyUpdate = () => window.dispatchEvent(new CustomEvent('flutter-pwa-update-available'));
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then((reg) => {
+          if (reg.waiting && navigator.serviceWorker.controller) notifyUpdate();
+          reg.addEventListener('updatefound', () => {
+            const worker = reg.installing;
+            if (!worker) return;
+            worker.addEventListener('statechange', () => {
+              if (worker.state === 'installed' && navigator.serviceWorker.controller) notifyUpdate();
+            });
+          });
+          // Installed PWAs on iOS resume instead of reloading: look for a new version on return.
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') reg.update().catch(() => {});
+          });
+        }).catch((e) => console.warn('Service worker registration failed:', e));
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!window.futureUpdateRequested) return;
+        window.futureUpdateRequested = false;
+        window.location.reload();
+      });
+    }
+    window.skipWaitingAndReload = function () {
+      if (!('serviceWorker' in navigator)) return window.location.reload();
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (reg && reg.waiting) {
+          window.futureUpdateRequested = true;
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        } else {
+          window.location.reload();
+        }
+      });
+    };
+    let splashHidden = false;
+    window.futureHideSplash = function () {
+      if (splashHidden) return;
+      splashHidden = true;
+      const splash = document.getElementById('splash');
+      if (!splash) return;
+      splash.classList.add('fade-out');
+      setTimeout(() => splash.remove(), 450);
+    };
+    // The page stops under the status bar (no viewport-fit=cover: with it, touches on an iPhone home screen
+    // app landed off target), so CSS reports no insets. As a home screen app on a Face ID iPhone the page
+    // still reaches the bottom edge, where the home indicator takes 34 pt.
+    window.futureSafeArea = function () {
+      const probe = document.getElementById('safe-area-probe');
+      const s = probe ? getComputedStyle(probe) : null;
+      const px = (v) => (s ? parseFloat(v) || 0 : 0);
+      let bottom = s ? px(s.paddingBottom) : 0;
+      const homeIndicator = navigator.standalone === true && /iPhone/.test(navigator.userAgent) && Math.max(screen.width, screen.height) >= 812;
+      if (homeIndicator) bottom = Math.max(bottom, 34);
+      return [s ? px(s.paddingTop) : 0, s ? px(s.paddingRight) : 0, bottom, s ? px(s.paddingLeft) : 0].join(',');
+    };
+    setTimeout(window.futureHideSplash, 15000);
+  </script>
+  <script src="haptics.js"></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

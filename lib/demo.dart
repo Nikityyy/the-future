@@ -4,8 +4,8 @@ import 'snapshot.dart';
 /// Made-up numbers so the app can be tried without Bitpanda.
 Snapshot demoSnapshot([DateTime? now]) {
   now ??= DateTime.now().toUtc();
-  const fund = [310.0, 300, 300, 350, 300, 300, 320, 300, 300, 400, 300, 300];
-  const crypto = [60.0, 80, 0, 100, 60, 60, 120, 60, 80, 60, 40, 60];
+  const fund = <double>[310, 300, 300, 350, 300, 300, 320, 300, 300, 400, 300, 300];
+  const crypto = <double>[60, 80, 0, 100, 60, 60, 120, 60, 80, 60, 40, 60];
   return Snapshot(
     generatedAt: now,
     holdings: const [
