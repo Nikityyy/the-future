@@ -224,7 +224,7 @@ class _LockScreenState extends State<LockScreen> {
       color: C.ground,
       child: Column(
         children: [
-          SizedBox(height: 28 + browserSafeArea().top),
+          SizedBox(height: 52 + browserSafeArea().top),
           const AppMark(size: 56),
           Expanded(
             child: PinPad(
