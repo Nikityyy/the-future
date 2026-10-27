@@ -44,7 +44,7 @@ class _Round extends StatelessWidget {
       );
 }
 
-String _pct(double v) => '${v < 0 ? '−' : ''}${v.abs().toStringAsFixed(v % 1 == 0 ? 0 : 1)}%';
+String _pct(double v) => '${v < 0 ? '−' : ''}${v.abs().toStringAsFixed(v % 1 == 0 ? 0 : (v * 10) % 1 == 0 ? 1 : 2)}%';
 
 /// Returns per asset type and scenario, inflation and the yearly raise.
 class AssumptionsSheet extends StatelessWidget {
@@ -82,6 +82,7 @@ class AssumptionsSheet extends StatelessWidget {
                       trailing: Switch2(on: state.realTerms, onChanged: (v) => state.setPlan(realTerms: v)),
                     ),
                     Row2(title: 'Inflation', trailing: _Stepper(text: _pct(state.inflation), onMinus: () => state.setPlan(inflation: (state.inflation - 0.5).clamp(0, 10)), onPlus: () => state.setPlan(inflation: (state.inflation + 0.5).clamp(0, 10)))),
+                    Row2(title: 'Savings account rate', subtitle: 'What the comparison with a savings account pays a year', trailing: _Stepper(text: _pct(state.savingsRate), onMinus: () => state.setPlan(savingsRate: (state.savingsRate - 0.25).clamp(0, 10)), onPlus: () => state.setPlan(savingsRate: (state.savingsRate + 0.25).clamp(0, 10)))),
                     Row2(title: 'Yearly raise', subtitle: 'Add more each year, such as with your pay', trailing: _Stepper(text: _pct(state.raisePercent), onMinus: () => state.setPlan(raisePercent: (state.raisePercent - 1).clamp(0, 30)), onPlus: () => state.setPlan(raisePercent: (state.raisePercent + 1).clamp(0, 30)))),
                   ],
                 ),
@@ -102,7 +103,7 @@ class AssumptionsSheet extends StatelessWidget {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                  child: AppButton('Back to defaults', filled: false, onTap: () => state.setPlan(returns: {for (final e in defaultReturns.entries) e.key: [...e.value]}, inflation: defaultInflation, raisePercent: 0, realTerms: false)),
+                  child: AppButton('Back to defaults', filled: false, onTap: () => state.setPlan(returns: {for (final e in defaultReturns.entries) e.key: [...e.value]}, inflation: defaultInflation, savingsRate: defaultSavingsRate, raisePercent: 0, realTerms: false)),
                 ),
               ),
               SliverToBoxAdapter(child: SizedBox(height: 40 + browserSafeArea().bottom)),

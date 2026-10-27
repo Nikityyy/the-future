@@ -145,3 +145,19 @@ footer p { max-width: 62em; }
   .js .w, .js .rise { opacity: 1; filter: none; transform: none; transition: none; }
   .btn { transition: none; }
 }
+
+/* Versus a savings account */
+.hint { display: block; margin-top: 10px; font-size: 15px; color: var(--ink-3); line-height: 1.45; }
+.money input#rate { padding: 0 8px 0 0; flex: 0 0 4.2em; }
+.vs { margin-top: 34px; }
+.vs-h { font-family: var(--serif); font-size: 26px; line-height: 1.15; letter-spacing: -0.015em; margin: 0 0 18px; }
+.bar { margin-bottom: 16px; }
+.bar > div { display: flex; justify-content: space-between; gap: 16px; font-size: 16px; margin-bottom: 8px; }
+.bar .num { font-weight: 500; }
+.bar .green { color: var(--green-ink); }
+.bar i { display: block; height: 10px; border-radius: 5px; background: rgba(22, 23, 15, 0.07); overflow: hidden; }
+.bar b { display: block; height: 100%; border-radius: 5px; transition: width 0.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.bar b.sand { background: #c7b58c; }
+.bar b.navy { background: #263248; }
+.bar b.green { background: #4a8b5a; }
+@media (prefers-reduced-motion: reduce) { .bar b { transition: none; } }

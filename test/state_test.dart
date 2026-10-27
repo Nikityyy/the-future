@@ -46,4 +46,16 @@ void main() {
     expect(again.hide, isTrue);
     expect(hideAmounts, isTrue);
   });
+
+  test('a savings account ends between cash and the plan, and the rate is remembered', () async {
+    final s = await demo();
+    await Future<void>.delayed(Duration.zero);
+    final plan = s.projectionFor(1), save = s.savingsFor();
+    expect(save.end, greaterThan(plan.contributed.last));
+    expect(save.end, lessThan(plan.end));
+    s.setPlan(savingsRate: 0);
+    expect(s.savingsFor().end, closeTo(plan.contributed.last, 0.01));
+    final again = await demo({'plan': '{"savings":2.5}'});
+    expect(again.savingsRate, 2.5);
+  });
 }

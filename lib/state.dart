@@ -48,6 +48,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   bool realTerms = false;
   double raisePercent = 0;
   double inflation = defaultInflation;
+  double savingsRate = defaultSavingsRate;
   Returns returns = {for (final e in defaultReturns.entries) e.key: [...e.value]};
   List<OneOffEntry> oneOffs = [];
 
@@ -89,6 +90,22 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       monthly: monthlyAmount ?? monthly,
       months: (yearsAhead ?? years) * 12,
       yearlyReturn: {for (final k in Kind.values) k: returns[k]![scenario]},
+      raisePercent: raisePercent,
+      oneOffs: _oneOffsNow,
+      realTerms: realTerms,
+      inflation: inflation,
+    );
+  }
+
+  /// The same money and the same monthly amount, left in a savings account.
+  Projection savingsFor() {
+    final s = snapshot!;
+    return project(
+      start: {for (final k in active) k: s.valueOf(k)},
+      mix: s.mixFor(active),
+      monthly: monthly,
+      months: years * 12,
+      yearlyReturn: {for (final k in Kind.values) k: savingsRate},
       raisePercent: raisePercent,
       oneOffs: _oneOffsNow,
       realTerms: realTerms,
@@ -230,6 +247,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     realTerms = false;
     raisePercent = 0;
     inflation = defaultInflation;
+    savingsRate = defaultSavingsRate;
     returns = {for (final e in defaultReturns.entries) e.key: [...e.value]};
     notifyListeners();
   }
@@ -275,6 +293,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     bool? realTerms,
     double? raisePercent,
     double? inflation,
+    double? savingsRate,
     Returns? returns,
     List<OneOffEntry>? oneOffs,
   }) {
@@ -284,6 +303,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     this.realTerms = realTerms ?? this.realTerms;
     this.raisePercent = raisePercent ?? this.raisePercent;
     this.inflation = inflation ?? this.inflation;
+    this.savingsRate = savingsRate ?? this.savingsRate;
     this.returns = returns ?? this.returns;
     this.oneOffs = oneOffs ?? this.oneOffs;
     notifyListeners();
@@ -302,6 +322,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         'real': realTerms,
         'raise': raisePercent,
         'inflation': inflation,
+        'savings': savingsRate,
         'returns': {for (final e in returns.entries) e.key.name: e.value},
         'oneOffs': [
           for (final o in oneOffs) [o.year, o.month, o.amount],
@@ -321,6 +342,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       realTerms = j['real'] as bool? ?? false;
       raisePercent = (j['raise'] as num?)?.toDouble() ?? 0;
       inflation = (j['inflation'] as num?)?.toDouble() ?? defaultInflation;
+      savingsRate = (j['savings'] as num?)?.toDouble() ?? defaultSavingsRate;
       final r = j['returns'] as Map<String, dynamic>?;
       if (r != null) {
         returns = {

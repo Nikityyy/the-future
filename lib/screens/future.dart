@@ -10,6 +10,7 @@ import '../ui/chrome.dart';
 import '../ui/filter.dart';
 import '../ui/lists.dart';
 import '../ui/ruler.dart';
+import '../ui/savings.dart';
 import 'plan.dart';
 
 const _scenarioNames = ['Cautious', 'Expected', 'Hopeful'];
@@ -129,6 +130,7 @@ class FuturePage extends StatelessWidget {
                   ],
                 ),
               ),
+              SliverToBoxAdapter(child: SavingsCompare(state, plan: mid, cautious: low, savings: state.savingsFor())),
               SliverToBoxAdapter(
                 child: Group(
                   header: 'YOUR PLAN',

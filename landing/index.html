@@ -42,7 +42,7 @@
     <section id="try">
       <div class="wrap">
         <h2 class="head" data-blur>Add a little more each month.</h2>
-        <p class="rise">This is the same calculation the app runs, with a plain start amount instead of your portfolio. Slide, and the twenty years change.</p>
+        <p class="rise">This is the same calculation the app runs, with a plain start amount instead of your portfolio. Slide, and the twenty years change, next to the same money in a savings account.</p>
 
         <form class="calc" id="calc" autocomplete="off">
           <div>
@@ -60,6 +60,10 @@
                 <label><input type="radio" name="years" value="30"><span>30</span></label>
               </div>
             </fieldset>
+            <label class="field" for="rate"><span class="lab">A savings account pays</span>
+              <span class="money"><input id="rate" inputmode="decimal" value="1.25" aria-label="Savings account interest in percent a year"><span aria-hidden="true">% a year</span></span>
+              <small class="hint">1.25% is what Raiffeisen Online Sparen pays at several regional banks (October 2026). Other banks pay more or less. Before tax.</small>
+            </label>
             <fieldset class="field"><legend>How it goes</legend>
               <div class="seg">
                 <label><input type="radio" name="case" value="0"><span>Cautious</span></label>
@@ -79,6 +83,12 @@
               <li><span>You add <small id="addNote" style="color:var(--ink-3)"></small></span><span class="num" id="add">+€75,000</span></li>
               <li class="grow"><span>It grows by</span><span class="num" id="grow">+€0</span></li>
             </ul>
+            <div class="vs" aria-live="polite">
+              <p class="vs-h" id="vsHead">Investing ends ahead of a savings account.</p>
+              <div class="bar"><div><span>Kept as cash</span><span class="num" id="vsCash"></span></div><i><b id="bCash" class="sand"></b></i></div>
+              <div class="bar"><div><span>Savings account</span><span class="num" id="vsSave"></span></div><i><b id="bSave" class="navy"></b></i></div>
+              <div class="bar"><div><span>Invested</span><span class="num green" id="vsInv"></span></div><i><b id="bInv" class="green"></b></i></div>
+            </div>
             <p class="note">Cautious, expected and hopeful mean 3%, 6.5% and 9% a year, as for a world ETF. Crypto has its own, much wider range in the app, and you can change all of them. A projection, not a forecast: taxes and fees are left out, and you can lose money.</p>
           </div>
         </form>

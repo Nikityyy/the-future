@@ -13,6 +13,10 @@ const defaultReturns = <Kind, List<double>>{
 
 const defaultInflation = 2.0;
 
+/// What a plain savings account pays a year, in percent. Raiffeisen's online
+/// daily-savings rate at several regional banks, October 2026.
+const defaultSavingsRate = 1.25;
+
 class OneOff {
   const OneOff(this.monthsFromNow, this.amount);
 

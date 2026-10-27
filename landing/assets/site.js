@@ -76,6 +76,15 @@ if (form) {
     $('grow').textContent = '+' + eur(end - start - put);
     $('addNote').textContent = eur(monthly) + ' a month for ' + years + ' years';
 
+    // Versus a savings account: same money, same months, a lower and safer return.
+    const rate = Math.min(10, Math.max(0, parseFloat($('rate').value.replace(',', '.')) || 0));
+    const save = series(start, monthly, months, rate)[months];
+    const cash = start + put;
+    const top = Math.max(end, save, cash) || 1;
+    $('vsCash').textContent = eur(cash); $('vsSave').textContent = eur(save); $('vsInv').textContent = eur(end);
+    $('bCash').style.width = (cash / top) * 100 + '%'; $('bSave').style.width = (save / top) * 100 + '%'; $('bInv').style.width = (end / top) * 100 + '%';
+    $('vsHead').textContent = end >= save ? 'Investing ends ' + eur(end - save) + ' ahead of a savings account.' : 'In this case the savings account ends ' + eur(save - end) + ' ahead.';
+
     // Chart: band between cautious and hopeful, the picked case as the line.
     const W = Math.round($('chart').getBoundingClientRect().width) || 640, H = W < 480 ? 250 : 300, L = 46, T = 10, B = 28, R = 12;
     $('chart').setAttribute('viewBox', '0 0 ' + W + ' ' + H);
