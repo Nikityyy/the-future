@@ -8,7 +8,7 @@ import '../platform/haptics.dart';
 import '../platform/web_glue.dart';
 import '../state.dart';
 import '../theme.dart';
-import '../ui/basics.dart' show Spinner;
+import '../ui/basics.dart' show PageBuilder, Spinner;
 import '../ui/chrome.dart';
 import '../ui/lists.dart';
 import '../version.dart';
@@ -21,9 +21,9 @@ class SettingsPage extends StatelessWidget {
   final AppState state;
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
+  Widget build(BuildContext context) => PageBuilder(
         listenable: state,
-        builder: (context, _) {
+        builder: (context) {
           final live = state.mode == Mode.live;
           return CustomScrollView(
             slivers: [

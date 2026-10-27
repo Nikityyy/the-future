@@ -121,6 +121,22 @@ class Snapshot {
     return sum;
   }
 
+  /// Money added between two moments, each amount weighted by the share of
+  /// the period it was invested (the Modified Dietz weights): bought on the
+  /// first day counts in full, bought on the last day not at all.
+  double weightedAddedBetween(DateTime from, DateTime to) {
+    final span = to.difference(from).inSeconds;
+    if (span <= 0) return 0;
+    var sum = 0.0;
+    for (final t in trades) {
+      final d = DateTime.tryParse(t.date);
+      if (d == null || t.value == null || d.isBefore(from) || d.isAfter(to)) continue;
+      final w = to.difference(d).inSeconds / span;
+      sum += w * (t.side == 'sell' ? -t.value! : t.side == 'buy' ? t.value! : 0);
+    }
+    return sum;
+  }
+
   double get value => holdings.fold(0, (a, h) => a + h.value);
   double get invested => holdings.fold(0, (a, h) => a + h.invested);
   double get gain => value - invested;

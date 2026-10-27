@@ -17,9 +17,6 @@ void saveFile(String name, String text) {
   } catch (_) {}
 }
 
-@JS('skipWaitingAndReload')
-external void _applyUpdate();
-
 EdgeInsets safeArea() {
   try {
     final v = _safeArea().toDart.split(',').map(double.parse).toList();
@@ -32,11 +29,5 @@ EdgeInsets safeArea() {
 void hideSplash() {
   try {
     _hideSplash();
-  } catch (_) {}
-}
-
-void applyUpdate() {
-  try {
-    _applyUpdate();
   } catch (_) {}
 }

@@ -14,6 +14,7 @@ import 'ui/basics.dart';
 import 'ui/warmup.dart';
 
 final _warm = ValueNotifier(true);
+final _nav = GlobalKey<NavigatorState>();
 final _booted = ValueNotifier(false);
 
 Future<void> main() async {
@@ -38,6 +39,16 @@ Future<void> main() async {
   runApp(ValueListenableBuilder(valueListenable: _booted, child: app, builder: (_, booted, app) => ExcludeFocus(excluding: !booted, child: app!)));
   WidgetsBinding.instance.addPostFrameCallback((_) => _booted.value = true);
   state.checkBio();
+  // Locking, or leaving the portfolio, closes whatever page or sheet is open,
+  // so none of it stays on screen over the lock or the start screen.
+  // Only on the change itself: setting up runs on a pushed page while there is
+  // no portfolio yet, and must stay open.
+  var (wasLocked, wasIn) = (state.locked, state.mode != Mode.none);
+  state.addListener(() {
+    final (locked, isIn) = (state.locked, state.mode != Mode.none);
+    if ((locked && !wasLocked) || (!isIn && wasIn)) _nav.currentState?.popUntil((r) => r.isFirst);
+    (wasLocked, wasIn) = (locked, isIn);
+  });
 
   // The first frames also paint the warm-up under the page (the very first
   // one can come before the canvas is ready); then it goes and the splash lifts.
@@ -64,6 +75,7 @@ class FutureApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => CupertinoApp(
+        navigatorKey: _nav,
         title: 'The Future',
         debugShowCheckedModeBanner: false,
         scrollBehavior: const AppScrollBehavior(),

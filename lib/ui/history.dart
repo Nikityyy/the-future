@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../format.dart';
 import '../platform/haptics.dart';
 import '../prices.dart';
+import '../projection.dart' show Kind;
 import '../snapshot.dart';
 import '../theme.dart';
 import 'basics.dart' show skipEntrance;
@@ -35,9 +36,11 @@ class _ValueHistoryState extends State<ValueHistory> {
     final pts = widget.s.history[f.$1]!;
     final (t0, v0) = pts.first;
     final (t1, v1) = pts.last;
+    // The gain leaves out money added; the percent is the Modified Dietz
+    // return: the gain over what was invested on average during the period.
     final added = widget.s.netAddedBetween(t0, t1);
     final gain = v1 - v0 - added;
-    final base = v0 + (added > 0 ? added : 0);
+    final base = v0 + widget.s.weightedAddedBetween(t0, t1);
     final up = gain >= 0;
     final label = f.$1 == 'all' ? 'since ${_monthNames[t0.month - 1]} ${t0.year}' : f.$3;
     final i = _scrub;
@@ -190,7 +193,7 @@ class _PriceChartState extends State<PriceChart> {
     } else if (ok) {
       head = Text.rich(TextSpan(children: [
         TextSpan(text: percent((pts.last.$2 / pts.first.$2 - 1) * 100), style: figures(sans(14, weight: FontWeight.w500, color: up ? C.greenInk : C.loss))),
-        TextSpan(text: '  ${p.$3}', style: sans(14, color: C.ink2)),
+        TextSpan(text: '  ${_shown == 'day' && widget.h.kind != Kind.crypto ? 'today' : p.$3}', style: sans(14, color: C.ink2)),
       ]));
     } else {
       head = Text(_pts == null ? '' : 'No prices for this period.', style: sans(14, color: C.ink2));

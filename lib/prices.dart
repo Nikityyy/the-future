@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'demo.dart';
+import 'projection.dart' show Kind;
 import 'snapshot.dart';
 
 /// The periods a price chart offers: Bitpanda's chart name, label, and words.
@@ -29,6 +30,19 @@ Future<List<(DateTime, double)>> prices(Holding h, String period) async {
     final from = DateTime.now().subtract(const Duration(days: 183));
     return [for (final p in await prices(h, 'year')) if (p.$1.isAfter(from)) p];
   }
+  // A fund or stock trades in sessions, and Bitpanda's day is only today's
+  // session. Today's change, as every market app shows it, is against the
+  // last close before it, which the hourly week has.
+  if (period == 'day' && h.kind != Kind.crypto) {
+    final (day, week) = await (_cached(pid, 'day'), _cached(pid, 'week')).wait;
+    if (day.isEmpty) return day;
+    final before = [for (final p in week) if (p.$1.isBefore(day.first.$1)) p];
+    return [if (before.isNotEmpty) before.last, ...day];
+  }
+  return _cached(pid, period);
+}
+
+Future<List<(DateTime, double)>> _cached(String pid, String period) async {
   final key = '$pid/$period';
   final load = _cache[key] ??= _load(pid, period);
   try {

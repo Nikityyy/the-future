@@ -22,7 +22,7 @@ module.exports = {
   maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
   runtimeCaching: [{ urlPattern: /(main\.dart\.js|canvaskit\/canvaskit\.(js|wasm))$/, handler: 'NetworkFirst', options: { cacheName: 'fallback' } }],
   navigateFallback: 'index.html',
-  // A new version takes over at once; the page then reloads itself (see index.html).
+  // A new version takes over at once; the page reloads into it once it is in the background (see index.html).
   skipWaiting: true,
   clientsClaim: true,
   cleanupOutdatedCaches: true,

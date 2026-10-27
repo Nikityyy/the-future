@@ -25,7 +25,9 @@ class SavingsCompare extends StatelessWidget {
     final bank = rate == defaultSavingsRate ? 'a Raiffeisen savings account' : 'a savings account at $rateText';
     return Group(
       header: 'VERSUS A SAVINGS ACCOUNT',
-      footer: 'At $rateText a year, what Raiffeisen Online Sparen paid in October 2026. Change it under Assumptions.',
+      footer: rate == defaultSavingsRate
+          ? 'At $rateText a year, what Raiffeisen Online Sparen paid in October 2026. Change it under Assumptions.'
+          : 'At $rateText a year, as set under Assumptions.',
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),

@@ -22,9 +22,9 @@ class FuturePage extends StatelessWidget {
   final AppState state;
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
+  Widget build(BuildContext context) => PageBuilder(
         listenable: state,
-        builder: (context, _) {
+        builder: (context) {
           final s = state.snapshot;
           if (s == null) return const SizedBox();
           final low = state.projectionFor(0);

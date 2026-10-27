@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:the_future/export.dart';
 import 'package:the_future/format.dart';
 import 'package:the_future/projection.dart';
+import 'package:the_future/snapshot.dart';
 import 'package:the_future/state.dart';
 
 Future<AppState> demo([Map<String, Object> saved = const {}]) async {
@@ -114,5 +115,19 @@ void main() {
     final sameDay = s.snapshot!.trades.where((x) => x.date == t.date).fold(0.0, (a, x) => a + x.value!);
     expect(s.snapshot!.netAddedBetween(at.subtract(const Duration(days: 1)), at.add(const Duration(days: 1))), sameDay);
     expect(s.snapshot!.netAddedBetween(at.add(const Duration(days: 1)), at.add(const Duration(days: 2))), 0);
+  });
+
+  test('the history percent weights money by how long it was invested', () {
+    // 1000 at the start, 1000 more at half time, 2100 at the end: a gain of 100
+    // on 1000 + 1000 / 2 invested on average, so 6.67% (Modified Dietz).
+    final t0 = DateTime.utc(2026, 1, 1), t1 = DateTime.utc(2026, 1, 31);
+    final s = Snapshot(
+      generatedAt: t1,
+      holdings: const [],
+      monthly: const [],
+      trades: [Trade(date: t0.add(t1.difference(t0) ~/ 2).toIso8601String(), symbol: 'X', name: 'X', kind: Kind.fund, side: 'buy', type: 'TRADE', amount: 1, value: 1000)],
+    );
+    expect(2100 - 1000 - s.netAddedBetween(t0, t1), 100);
+    expect(1000 + s.weightedAddedBetween(t0, t1), closeTo(1500, 1e-9));
   });
 }

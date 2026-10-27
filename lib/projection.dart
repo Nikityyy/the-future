@@ -41,8 +41,10 @@ class Projection {
 
 /// Month by month: money is added at the start of the month, then the month's
 /// growth applies. [monthly] rises by [raisePercent] each year. With
-/// [realTerms] the returns are taken after [inflation], so the result reads
-/// in today's money.
+/// [realTerms] every month's value is divided by the [inflation] from today
+/// to that month, so it reads in today's money. (Taking inflation off the
+/// return instead would be wrong for money added later: a euro added in
+/// year 15 still loses the first 15 years of inflation by year 20.)
 Projection project({
   required Map<Kind, double> start,
   required Map<Kind, double> mix,
@@ -55,14 +57,8 @@ Projection project({
   double inflation = defaultInflation,
 }) {
   final bal = {for (final k in Kind.values) k: start[k] ?? 0};
-  final rate = {
-    for (final k in Kind.values)
-      k: math.pow(
-            (1 + (yearlyReturn[k] ?? 0) / 100) / (realTerms ? 1 + inflation / 100 : 1),
-            1 / 12,
-          ).toDouble() -
-          1,
-  };
+  final rate = {for (final k in Kind.values) k: math.pow(1 + (yearlyReturn[k] ?? 0) / 100, 1 / 12).toDouble() - 1};
+  double deflate(int m) => realTerms ? math.pow(1 + inflation / 100, m / 12).toDouble() : 1;
   final values = <double>[bal.values.fold(0, (a, b) => a + b)];
   final contributed = <double>[values.first];
   var put = values.first;
@@ -73,8 +69,8 @@ Projection project({
     for (final k in Kind.values) {
       bal[k] = (bal[k]! + add * (mix[k] ?? 0)) * (1 + rate[k]!);
     }
-    values.add(bal.values.fold(0, (a, b) => a + b));
-    contributed.add(put);
+    values.add(bal.values.fold(0.0, (a, b) => a + b) / deflate(m));
+    contributed.add(put / deflate(m));
   }
   return Projection(values, contributed);
 }

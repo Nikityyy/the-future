@@ -21,9 +21,9 @@ class PortfolioPage extends StatelessWidget {
   final AppState state;
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
+  Widget build(BuildContext context) => PageBuilder(
         listenable: state,
-        builder: (context, _) {
+        builder: (context) {
           final s = state.snapshot;
           if (s == null) return const SizedBox();
           final shown = [for (final h in s.holdings) if (state.active.contains(h.kind)) h];

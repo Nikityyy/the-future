@@ -303,3 +303,56 @@ class Spinner extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox(width: size, height: size, child: _Spinner(color: color));
 }
+
+/// Rebuilds when [listenable] changes, like ListenableBuilder, but not while
+/// its page is covered by a sheet or another page: nobody sees it then, and
+/// redoing a whole page behind a sheet on every tap in it costs a frame each
+/// time. It catches up once, when the page shows again.
+class PageBuilder extends StatefulWidget {
+  const PageBuilder({super.key, required this.listenable, required this.builder});
+
+  final Listenable listenable;
+  final WidgetBuilder builder;
+
+  @override
+  State<PageBuilder> createState() => _PageBuilderState();
+}
+
+class _PageBuilderState extends State<PageBuilder> {
+  bool _shown = true;
+
+  void _changed() {
+    // While covered, the next build comes when the page shows again.
+    if (_shown) setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    widget.listenable.addListener(_changed);
+  }
+
+  @override
+  void didUpdateWidget(PageBuilder old) {
+    super.didUpdateWidget(old);
+    if (old.listenable != widget.listenable) {
+      old.listenable.removeListener(_changed);
+      widget.listenable.addListener(_changed);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _shown = ModalRoute.isCurrentOf(context) ?? true;
+  }
+
+  @override
+  void dispose() {
+    widget.listenable.removeListener(_changed);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context);
+}

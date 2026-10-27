@@ -41,29 +41,29 @@
   </div>
   <script>
     if ('serviceWorker' in navigator) {
-      const notifyUpdate = () => window.dispatchEvent(new CustomEvent('flutter-pwa-update-available'));
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').then((reg) => {
           // Look for a newer version every time the app opens, not only when the browser decides to.
           reg.update().catch(() => {});
-          if (reg.waiting && navigator.serviceWorker.controller) notifyUpdate();
-          reg.addEventListener('updatefound', () => {
-            const worker = reg.installing;
-            if (!worker) return;
-            worker.addEventListener('statechange', () => {
-              if (worker.state === 'installed' && navigator.serviceWorker.controller) notifyUpdate();
-            });
-          });
           // Installed PWAs on iOS resume instead of reloading: look for a new version on return.
           document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') reg.update().catch(() => {});
           });
         }).catch((e) => console.warn('Service worker registration failed:', e));
       });
-      // A new version has taken over: reload once into it. Not on the very first install,
-      // when there was no older version to replace.
+      // A new version has taken over: reload into it, but never while the app is on
+      // screen. A reload starts at the lock screen, so doing it while you look at
+      // the app would ask for the PIN or passkey a second time. So it waits until
+      // the app is in the background. Not on the very first install, when there was
+      // no older version to replace.
       const hadController = !!navigator.serviceWorker.controller;
       let reloading = false;
+      const reloadWhenHidden = () => {
+        if (document.visibilityState === 'hidden') return window.location.reload();
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'hidden') window.location.reload();
+        });
+      };
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         // First install on a browser without WasmGC: it runs main.dart.js on CanvasKit,
         // which the worker does not precache. Fetch them once through it so they work offline.
@@ -72,20 +72,9 @@
         }
         if (!hadController || reloading) return;
         reloading = true;
-        window.location.reload();
+        reloadWhenHidden();
       });
     }
-    window.skipWaitingAndReload = function () {
-      if (!('serviceWorker' in navigator)) return window.location.reload();
-      navigator.serviceWorker.getRegistration().then((reg) => {
-        if (reg && reg.waiting) {
-          window.futureUpdateRequested = true;
-          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        } else {
-          window.location.reload();
-        }
-      });
-    };
     // The Markdown export: the share sheet where there is one (iPhone: Save to Files,
     // AirDrop, mail), else a plain download.
     window.futureSaveFile = function (name, text) {
