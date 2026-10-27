@@ -1,1 +1,141 @@
-<!doctype html><title>x</title>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Future: see what your Bitpanda money becomes</title>
+  <meta name="description" content="The Future reads your Bitpanda portfolio and shows what your ETFs and crypto grow into if you keep investing. Slide the monthly amount, watch the years move. Free, private, no account.">
+  <meta name="theme-color" content="#f8f5ec">
+  <meta name="color-scheme" content="light">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="The Future: see what your Bitpanda money becomes">
+  <meta property="og:description" content="Slide the monthly amount, watch twenty years move. Free, private, no account.">
+  <meta property="og:image" content="assets/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="preload" href="assets/fonts/Newsreader.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/site.css">
+  <script>document.documentElement.classList.add('js')</script>
+</head>
+<body>
+  <header class="wrap top">
+    <a class="brand" href="./" aria-label="The Future, home"><img src="assets/favicon.svg" alt="" width="32" height="32">The Future</a>
+    <a class="btn small" href="app/">Open the app</a>
+  </header>
+
+  <main>
+    <div class="wrap hero">
+      <div>
+        <h1 data-blur>See what your money becomes.</h1>
+        <p class="lede rise" style="--d:.5s">The Future reads your Bitpanda portfolio, your ETFs and your crypto, and shows what they grow into if you keep investing the way you do now. Then change the number and watch the years move.</p>
+        <div class="actions rise" style="--d:.7s">
+          <a class="btn" href="app/">Open the app</a>
+          <a class="link" href="#try">Try it with your numbers</a>
+        </div>
+        <p class="fine rise" style="--d:.85s">Free. No account. Your numbers stay on your phone.</p>
+      </div>
+      <div class="phone rise" style="--d:.4s"><img src="assets/future.webp" width="780" height="1688" alt="The Future app on a phone: an estimated value in 20 years of €296,877, a growth curve and a ruler to set the monthly amount."></div>
+    </div>
+
+    <hr class="rule">
+    <section id="try">
+      <div class="wrap">
+        <h2 class="head" data-blur>Add a little more each month.</h2>
+        <p class="rise">This is the same calculation the app runs, with a plain start amount instead of your portfolio. Slide, and the twenty years change.</p>
+
+        <form class="calc" id="calc" autocomplete="off">
+          <div>
+            <label class="field" for="start"><span>You have today</span>
+              <span class="money"><span aria-hidden="true">€</span><input id="start" inputmode="numeric" value="10,000" aria-label="Amount you have today in euro"></span>
+            </label>
+            <label class="field" for="monthly"><span>You add each month <output id="monthlyOut" for="monthly">€250</output></span>
+              <input id="monthly" type="range" min="0" max="1500" step="5" value="250">
+            </label>
+            <fieldset class="field"><legend>For how long</legend>
+              <div class="seg">
+                <label><input type="radio" name="years" value="5"><span>5 years</span></label>
+                <label><input type="radio" name="years" value="10"><span>10</span></label>
+                <label><input type="radio" name="years" value="20" checked><span>20</span></label>
+                <label><input type="radio" name="years" value="30"><span>30</span></label>
+              </div>
+            </fieldset>
+            <fieldset class="field"><legend>How it goes</legend>
+              <div class="seg">
+                <label><input type="radio" name="case" value="0"><span>Cautious</span></label>
+                <label><input type="radio" name="case" value="1" checked><span>Expected</span></label>
+                <label><input type="radio" name="case" value="2"><span>Hopeful</span></label>
+              </div>
+            </fieldset>
+          </div>
+
+          <div class="result" aria-live="polite">
+            <div class="big num" id="big">€296,877</div>
+            <p class="caption">Estimated value in <span id="years">20</span> years</p>
+            <svg class="chart" id="chart" viewBox="0 0 640 300" role="img" aria-labelledby="chartLabel"></svg>
+            <span id="chartLabel" hidden></span>
+            <ul class="sum">
+              <li><span>You have today</span><span class="num" id="now">€10,000</span></li>
+              <li><span>You add <small id="addNote" style="color:var(--ink-3)"></small></span><span class="num" id="add">+€75,000</span></li>
+              <li class="grow"><span>It grows by</span><span class="num" id="grow">+€0</span></li>
+            </ul>
+            <p class="note">Cautious, expected and hopeful mean 3%, 6.5% and 9% a year, as for a world ETF. Crypto has its own, much wider range in the app, and you can change all of them. A projection, not a forecast: taxes and fees are left out, and you can lose money.</p>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <hr class="rule">
+    <section id="connect">
+      <div class="wrap">
+        <h2 class="head" data-blur>From Bitpanda to your phone.</h2>
+        <p class="rise">There is no sign-in with Bitpanda and no server in between. GitHub, which you already control, does the reading.</p>
+        <ol class="list steps">
+          <li class="rise"><h3>Create a read-only key</h3><p>In Bitpanda, under Account and API keys, give the key the Read scope only. Without Trade it cannot buy, sell or withdraw anything. You can delete it at any time.</p></li>
+          <li class="rise"><h3>Put it in your own repository</h3><p>Fork the project on GitHub and add two secrets: the key, and a long passphrase of your own. GitHub reads your portfolio every three hours, seals it with the passphrase and publishes only the sealed file.</p></li>
+          <li class="rise"><h3>Open the app and enter the passphrase</h3><p>The app opens the sealed file on your phone, then asks for a six digit PIN. From then on the PIN is all you type.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <hr class="rule">
+    <section id="private">
+      <div class="wrap split flip">
+        <div>
+          <h2 class="head" data-blur>Private, and you can check it.</h2>
+          <ul class="list claims">
+            <li class="rise"><h3>The key can only read</h3><p>Bitpanda keys have scopes. This one has the Read scope and nothing else.</p></li>
+            <li class="rise"><h3>The key never reaches your phone</h3><p>It lives in a GitHub secret. Your phone only ever receives a sealed file, locked with AES-256 and a key stretched from your passphrase 600,000 times.</p></li>
+            <li class="rise"><h3>A PIN guards the app</h3><p>The passphrase is sealed on your phone under your PIN, and the app locks itself two minutes after you leave it.</p></li>
+            <li class="rise"><h3>Open source, no tracking</h3><p>No account, no analytics, no ads. Read every line on <a href="https://github.com/Nikityyy/the-future">GitHub</a>.</p></li>
+          </ul>
+          <p class="note rise">The sealed file is public, as GitHub Pages is. Only your passphrase opens it, so choose four random words rather than a name or a date.</p>
+        </div>
+        <div class="phone rise"><img src="assets/lock.webp" width="780" height="1688" alt="The lock screen of the app: a six digit PIN pad."></div>
+      </div>
+    </section>
+
+    <hr class="rule">
+    <section id="install">
+      <div class="wrap">
+        <h2 class="head" data-blur>Keep it on your home screen.</h2>
+        <p class="rise">It is a web app, so there is nothing to download from a store. Installed, it opens full screen, works offline and feels like any other app.</p>
+        <div class="install rise">
+          <div><h3>iPhone</h3><ol><li>Open <a href="app/">the app</a> in Safari.</li><li>Tap Share, then Add to Home Screen.</li><li>Open it from your home screen.</li></ol></div>
+          <div><h3>Android and computer</h3><ol><li>Open <a href="app/">the app</a> in Chrome or Edge.</li><li>Choose Install app from the menu or the address bar.</li><li>Open it like any other app.</li></ol></div>
+        </div>
+        <div class="actions rise" style="margin-top:44px"><a class="btn" href="app/">Open the app</a><a class="link" href="app/">or try the demo first</a></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p>Made by Nikita Berger. <a href="https://github.com/Nikityyy/the-future">Source on GitHub</a>, MIT licence.</p>
+      <p>Not affiliated with Bitpanda. The Future shows projections, not financial advice: real returns vary, crypto most of all, and you can lose money.</p>
+    </div>
+  </footer>
+
+  <script src="assets/site.js" defer></script>
+</body>
+</html>
