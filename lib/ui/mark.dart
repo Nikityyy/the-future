@@ -1,8 +1,9 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/widgets.dart';
 
-import '../theme.dart';
-
-/// The app icon: a navy tile with the curve that ends in a glowing point.
+/// The app icon: a stroke that rises to a glowing point, with faint ripples
+/// around it. Painted, so it stays sharp at any size. Matches web/icons/icon.svg.
 class AppMark extends StatelessWidget {
   const AppMark({super.key, this.size = 64});
 
@@ -13,32 +14,46 @@ class AppMark extends StatelessWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: C.navy,
-          borderRadius: BorderRadius.circular(size * 0.28),
-          boxShadow: [BoxShadow(color: C.navy.withValues(alpha: 0.28), blurRadius: size * 0.4, offset: Offset(0, size * 0.14))],
+          borderRadius: BorderRadius.circular(size * 0.22),
+          boxShadow: [BoxShadow(color: const Color(0xFF18202F).withValues(alpha: 0.34), blurRadius: size * 0.42, offset: Offset(0, size * 0.16))],
         ),
-        child: CustomPaint(painter: _MarkPainter()),
+        child: ClipRRect(borderRadius: BorderRadius.circular(size * 0.22), child: CustomPaint(painter: _MarkPainter())),
       );
 }
 
 class _MarkPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size s) {
-    final w = s.width;
-    final path = Path()
-      ..moveTo(w * 0.2, w * 0.74)
-      ..cubicTo(w * 0.42, w * 0.72, w * 0.58, w * 0.6, w * 0.74, w * 0.28);
+    final k = s.width / 1024;
+    canvas.drawRect(
+      Offset.zero & s,
+      Paint()..shader = ui.Gradient.linear(Offset.zero, Offset(s.width, s.height), const [Color(0xFF37486A), Color(0xFF18202F)]),
+    );
+    final c = Offset(716 * k, 318 * k);
+    final ring = Paint()
+      ..color = const Color(0xFFF8F5EC).withValues(alpha: 0.085)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3 * k;
+    for (var r = 150.0; r <= 865; r += 65) {
+      canvas.drawCircle(c, r * k, ring);
+    }
+    final curve = Path()
+      ..moveTo(170 * k, 812 * k)
+      ..cubicTo(400 * k, 800 * k, 580 * k, 650 * k, 716 * k, 318 * k);
     canvas.drawPath(
-      path,
+      curve,
       Paint()
-        ..color = C.ground
+        ..shader = ui.Gradient.linear(Offset(170 * k, 812 * k), c, [const Color(0xFFF8F5EC).withValues(alpha: 0.18), const Color(0xFFF8F5EC).withValues(alpha: 0.9), const Color(0xFFFFFDF8)], const [0, 0.55, 1])
         ..style = PaintingStyle.stroke
-        ..strokeWidth = w * 0.07
+        ..strokeWidth = 58 * k
         ..strokeCap = StrokeCap.round,
     );
-    final end = Offset(w * 0.74, w * 0.28);
-    canvas.drawCircle(end, w * 0.15, Paint()..color = const Color(0xFF7BC08B).withValues(alpha: 0.25));
-    canvas.drawCircle(end, w * 0.075, Paint()..color = const Color(0xFF7BC08B));
+    canvas.drawCircle(
+      c,
+      190 * k,
+      Paint()..shader = ui.Gradient.radial(c, 190 * k, [const Color(0xFFF1FFF1), const Color(0xFF9AD9A8), const Color(0xFF4A8B5A).withValues(alpha: 0.55), const Color(0xFF4A8B5A).withValues(alpha: 0)], const [0, 0.3, 0.62, 1]),
+    );
+    canvas.drawCircle(c, 40 * k, Paint()..color = const Color(0xFFF4FFF4));
   }
 
   @override

@@ -11,7 +11,7 @@ import 'basics.dart';
 /// The growth curve with its band between the cautious and the hopeful case.
 /// The picked scenario is the bold line; drag a finger along it to read a month.
 class GrowthChart extends StatefulWidget {
-  const GrowthChart({super.key, required this.low, required this.mid, required this.high, required this.start, required this.years, required this.restartKey});
+  const GrowthChart({super.key, required this.low, required this.mid, required this.high, required this.start, required this.years, required this.restartKey, this.height = 280, this.interactive = true});
 
   final List<double> low;
   final List<double> mid;
@@ -21,6 +21,11 @@ class GrowthChart extends StatefulWidget {
 
   /// The chart draws itself again when this changes.
   final Object restartKey;
+
+  final double height;
+
+  /// Whether a finger dragged along it reads a month.
+  final bool interactive;
 
   @override
   State<GrowthChart> createState() => _GrowthChartState();
@@ -66,16 +71,16 @@ class _GrowthChartState extends State<GrowthChart> with SingleTickerProviderStat
   Widget build(BuildContext context) => LayoutBuilder(
         builder: (context, box) => GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onHorizontalDragStart: (d) => _scrubTo(d.localPosition.dx, box.maxWidth),
-          onHorizontalDragUpdate: (d) => _scrubTo(d.localPosition.dx, box.maxWidth),
-          onHorizontalDragEnd: (_) => setState(() => _scrub = null),
-          onHorizontalDragCancel: () => setState(() => _scrub = null),
+          onHorizontalDragStart: widget.interactive ? (d) => _scrubTo(d.localPosition.dx, box.maxWidth) : null,
+          onHorizontalDragUpdate: widget.interactive ? (d) => _scrubTo(d.localPosition.dx, box.maxWidth) : null,
+          onHorizontalDragEnd: widget.interactive ? (_) => setState(() => _scrub = null) : null,
+          onHorizontalDragCancel: widget.interactive ? () => setState(() => _scrub = null) : null,
           child: Semantics(
             label: 'Growth chart. In ${widget.years} years: ${eur(widget.low.last)} cautious, ${eur(widget.mid.last)} expected, ${eur(widget.high.last)} hopeful.',
             child: AnimatedBuilder(
               animation: _draw,
               builder: (context, _) => CustomPaint(
-                size: Size(box.maxWidth, 280),
+                size: Size(box.maxWidth, widget.height),
                 painter: _Painter(
                   low: widget.low,
                   mid: widget.mid,

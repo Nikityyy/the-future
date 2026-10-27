@@ -37,6 +37,11 @@ class FutureApp extends StatelessWidget {
           primaryColor: C.navy,
           textTheme: CupertinoTextThemeData(textStyle: sans(16)),
         ),
+        // On a computer the app stays a phone-width column in the middle.
+        builder: (context, child) => ColoredBox(
+          color: C.ground,
+          child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 560), child: child)),
+        ),
         home: ListenableBuilder(
           listenable: state,
           builder: (context, _) {

@@ -2,13 +2,18 @@ import 'package:flutter/widgets.dart';
 
 import '../platform/haptics.dart';
 import '../platform/web_glue.dart';
+import '../projection.dart';
 import '../state.dart';
 import '../theme.dart';
 import '../ui/basics.dart';
+import '../ui/chart.dart';
 import '../ui/chrome.dart';
+import '../ui/journey.dart';
 import '../ui/mark.dart';
+import '../ui/ruler.dart';
 import 'connect.dart';
 
+/// Three screens: the name, the number the app is about, and a number to slide.
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen(this.state, {super.key});
 
@@ -28,32 +33,39 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     super.dispose();
   }
 
-  static const _slides = [
-    ('Welcome to The Future', 'Your Bitpanda investments, and what they become if you keep going.'),
-    ('Slide a number, see your years', 'Change what you add each month and watch twenty years move with it.'),
-    ('Private by construction', 'No account. No server of mine. Your Bitpanda key never leaves GitHub, and your numbers open only with your passphrase.'),
-  ];
-
   @override
   Widget build(BuildContext context) => ColoredBox(
         color: C.ground,
         child: Column(
           children: [
             Expanded(
-              child: PageView.builder(
+              child: PageView(
                 controller: _pages,
-                itemCount: _slides.length,
                 onPageChanged: (i) {
                   Haptics.selection();
                   setState(() => _page = i);
                 },
-                itemBuilder: (context, i) => _Slide(index: i, active: _page == i, title: _slides[i].$1, body: _slides[i].$2),
+                children: [
+                  _Slide(
+                    active: _page == 0,
+                    art: const AppMark(size: 136),
+                    title: 'Welcome to The Future',
+                    body: 'Your Bitpanda investments, and what they become if you keep going.',
+                  ),
+                  _Slide(
+                    active: _page == 1,
+                    art: const Journey(today: '€27,673', future: '€148,230', caption: 'IN 20 YEARS'),
+                    title: 'Your money, twenty years on',
+                    body: 'See what your ETFs and crypto grow into at the pace you invest today.',
+                  ),
+                  _LiveSlide(active: _page == 2),
+                ],
               ),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                for (var i = 0; i < _slides.length; i++)
+                for (var i = 0; i < 3; i++)
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 280),
                     curve: Curves.easeOutCubic,
@@ -65,7 +77,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ],
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(20, 22, 20, 16 + browserSafeArea().bottom),
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),
               child: Row(
                 children: [
                   Expanded(child: AppButton('Try the demo', filled: false, onTap: widget.state.startDemo)),
@@ -74,128 +86,101 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ],
               ),
             ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(20, 14, 20, 14 + browserSafeArea().bottom),
+              child: Text('Free. No account. Your key never leaves GitHub.', style: sans(12.5, color: C.ink2), textAlign: TextAlign.center),
+            ),
           ],
         ),
       );
 }
 
 class _Slide extends StatelessWidget {
-  const _Slide({required this.index, required this.active, required this.title, required this.body});
+  const _Slide({required this.active, required this.art, required this.title, required this.body});
 
-  final int index;
   final bool active;
+  final Widget art;
   final String title;
   final String body;
 
   @override
-  Widget build(BuildContext context) {
-    final top = browserSafeArea().top;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(32, top, 32, 0),
-      child: Column(
-        children: [
-          Expanded(
-            flex: 5,
-            child: Center(
-              child: BlurIn(
-                key: ValueKey('art$index$active'),
-                duration: const Duration(milliseconds: 1000),
-                child: switch (index) {
-                  0 => const AppMark(size: 92),
-                  1 => const _MiniFuture(),
-                  _ => const _Seal(),
-                },
+  Widget build(BuildContext context) => Padding(
+        padding: EdgeInsets.fromLTRB(32, browserSafeArea().top, 32, 0),
+        child: Column(
+          children: [
+            Expanded(
+              flex: 5,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                heightFactor: 1,
+                child: active
+                    ? BlurIn(key: ValueKey(title), duration: const Duration(milliseconds: 1100), child: art)
+                    : Opacity(opacity: 0, child: art),
               ),
             ),
-          ),
-          Expanded(
-            flex: 4,
-            child: Column(
-              children: [
-                if (active)
-                  BlurText(title, style: serif(48, height: 1.02), align: WrapAlignment.center, delay: const Duration(milliseconds: 150))
-                else
-                  Opacity(opacity: 0, child: Text(title, style: serif(48, height: 1.02), textAlign: TextAlign.center)),
-                const SizedBox(height: 18),
-                if (active)
-                  BlurIn(delay: const Duration(milliseconds: 650), child: Text(body, style: sans(15.5, color: C.ink2, height: 1.45), textAlign: TextAlign.center)),
-              ],
+            Expanded(
+              flex: 4,
+              child: Column(
+                children: [
+                  const SizedBox(height: 40),
+                  if (active)
+                    BlurText(title, style: serif(48, height: 1.02), align: WrapAlignment.center, delay: const Duration(milliseconds: 250))
+                  else
+                    Opacity(opacity: 0, child: Text(title, style: serif(48, height: 1.02), textAlign: TextAlign.center)),
+                  const SizedBox(height: 18),
+                  if (active) BlurIn(delay: const Duration(milliseconds: 750), child: Text(body, style: sans(15.5, color: C.ink2, height: 1.45), textAlign: TextAlign.center)),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A small banknote-like card: the number the app is about.
-class _MiniFuture extends StatelessWidget {
-  const _MiniFuture();
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: 250,
-        padding: const EdgeInsets.fromLTRB(22, 20, 22, 16),
-        decoration: BoxDecoration(
-          color: C.raised,
-          borderRadius: BorderRadius.circular(26),
-          border: Border.all(color: C.rule.withValues(alpha: 0.08)),
-          boxShadow: [BoxShadow(color: C.ink.withValues(alpha: 0.10), blurRadius: 40, offset: const Offset(0, 18))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('In 20 years', style: sans(13, color: C.ink2)),
-            const SizedBox(height: 4),
-            Text('€148,230', style: figures(serif(40, color: C.greenInk))),
-            const SizedBox(height: 14),
-            SizedBox(height: 70, width: double.infinity, child: CustomPaint(painter: _CurvePainter())),
           ],
         ),
       );
 }
 
-class _CurvePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size s) {
-    final path = Path()..moveTo(0, s.height);
-    for (var i = 1; i <= 40; i++) {
-      final t = i / 40;
-      path.lineTo(s.width * t, s.height - (s.height - 6) * (t * t * 0.8 + t * 0.2));
-    }
-    canvas.drawPath(path, Paint()..color = C.green..style = PaintingStyle.stroke..strokeWidth = 2.4..strokeCap = StrokeCap.round);
-    final end = Offset(s.width, 6);
-    canvas.drawCircle(end, 11, Paint()..color = C.green.withValues(alpha: 0.25));
-    canvas.drawCircle(end, 4.5, Paint()..color = C.green);
-  }
+/// The real chart and ruler with sample money, so the idea is in your hands before you sign in.
+class _LiveSlide extends StatefulWidget {
+  const _LiveSlide({required this.active});
+
+  final bool active;
 
   @override
-  bool shouldRepaint(_CurvePainter old) => false;
+  State<_LiveSlide> createState() => _LiveSlideState();
 }
 
-class _Seal extends StatelessWidget {
-  const _Seal();
+class _LiveSlideState extends State<_LiveSlide> {
+  double _monthly = 200;
+
+  static const _start = {Kind.fund: 10000.0};
+  static const _mix = {Kind.fund: 1.0};
+
+  Projection _run(double yearly) => project(start: _start, mix: _mix, monthly: _monthly, months: 240, yearlyReturn: {Kind.fund: yearly});
+
+  List<double> _thin(List<double> v) => [for (var i = 0; i < v.length; i += 2) v[i], v.last];
 
   @override
-  Widget build(BuildContext context) => Container(
-        width: 92,
-        height: 92,
-        decoration: BoxDecoration(color: C.greenSoft, shape: BoxShape.circle, border: Border.all(color: C.green.withValues(alpha: 0.4))),
-        child: CustomPaint(painter: _LockPainter()),
-      );
-}
-
-class _LockPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size s) {
-    final p = Paint()..color = C.greenInk..style = PaintingStyle.stroke..strokeWidth = 3..strokeCap = StrokeCap.round;
-    final c = s.center(Offset.zero);
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: c.translate(0, 7), width: 34, height: 26), const Radius.circular(7)), Paint()..color = C.greenInk);
-    canvas.drawArc(Rect.fromCenter(center: c.translate(0, -6), width: 22, height: 26), 3.14159, 3.14159, false, p);
-    canvas.drawLine(c.translate(-11, -6), c.translate(-11, -1), p);
-    canvas.drawLine(c.translate(11, -6), c.translate(11, -1), p);
+  Widget build(BuildContext context) {
+    final low = _run(3), mid = _run(6.5), high = _run(9);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, browserSafeArea().top + 12, 24, 0),
+      child: Column(
+        children: [
+          if (widget.active)
+            BlurText('Slide a number, see your years', style: serif(38, height: 1.02), align: WrapAlignment.center)
+          else
+            Opacity(opacity: 0, child: Text('Slide a number, see your years', style: serif(38, height: 1.02), textAlign: TextAlign.center)),
+          const SizedBox(height: 18),
+          CountUp(mid.end, style: serif(60, color: C.greenInk, tracking: -2)),
+          const SizedBox(height: 4),
+          Text('in 20 years, from €10,000 today', style: sans(14, color: C.ink2)),
+          Expanded(
+            child: Center(
+              child: GrowthChart(low: _thin(low.values), mid: _thin(mid.values), high: _thin(high.values), start: DateTime.now(), years: 20, restartKey: 'welcome', height: 230, interactive: false),
+            ),
+          ),
+          Align(alignment: Alignment.centerLeft, child: Text('Amount you’ll add monthly', style: sans(15, weight: FontWeight.w500))),
+          RulerSlider(label: 'Monthly amount', value: _monthly, min: 0, max: 1000, step: 5, onChanged: (v) => setState(() => _monthly = v)),
+        ],
+      ),
+    );
   }
-
-  @override
-  bool shouldRepaint(_LockPainter old) => false;
 }
