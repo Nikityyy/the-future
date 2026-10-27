@@ -5,8 +5,8 @@
   --ground: #f8f5ec;
   --raised: #fffdf8;
   --ink: #16170f;
-  --ink-2: #6a695c;
-  --ink-3: #8a8878;
+  --ink-2: #5d5c4f;
+  --ink-3: #6d6b5b;
   --rule: rgba(22, 23, 15, 0.14);
   --fill: rgba(52, 52, 38, 0.08);
   --navy: #263248;
@@ -52,7 +52,7 @@ p { margin: 0; text-wrap: pretty; }
 .hero { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: clamp(32px, 6vw, 88px); align-items: center; padding-block: clamp(28px, 6vw, 72px) clamp(56px, 9vw, 120px); }
 .lede { margin-top: 28px; max-width: 34em; font-size: clamp(18px, 2.2vw, 21px); color: var(--ink-2); }
 .actions { margin-top: 36px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px; }
-.fine { margin-top: 22px; font-size: 14.5px; color: var(--ink-3); }
+.fine { margin-top: 22px; font-size: 15px; color: var(--ink-3); }
 
 .phone { width: min(100%, 330px); margin-inline: auto; padding: 9px; border-radius: 52px; background: #1d2433; box-shadow: 0 50px 80px -30px rgba(38, 50, 72, 0.45), 0 0 0 1.5px rgba(255, 255, 255, 0.06) inset; }
 .phone img { border-radius: 43px; width: 100%; aspect-ratio: 390 / 844; background: var(--ground); }
@@ -66,10 +66,10 @@ hr.rule { border: 0; border-top: 1px solid var(--rule); margin: 0; }
 /* The calculator */
 .calc { margin-top: clamp(36px, 6vw, 64px); display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(32px, 6vw, 80px); align-items: start; }
 .field { display: block; margin-bottom: 30px; }
-.field > span, .field legend { display: flex; justify-content: space-between; align-items: baseline; padding: 0; font-weight: 500; font-size: 16px; margin-bottom: 12px; }
+.field .lab, .field legend { display: flex; justify-content: space-between; align-items: baseline; padding: 0; font-weight: 500; font-size: 16px; margin-bottom: 12px; }
 .field output { font-family: var(--serif); font-size: 28px; letter-spacing: -0.02em; }
 fieldset.field { border: 0; margin: 0 0 30px; padding: 0; min-width: 0; }
-.money { display: flex; align-items: center; height: 56px; padding: 0 20px; border-radius: 18px; background: var(--raised); border: 1px solid var(--rule); font-size: 20px; }
+.money { display: flex; margin: 0; align-items: center; height: 56px; padding: 0 20px; border-radius: 18px; background: var(--raised); border: 1px solid var(--rule); font-size: 20px; }
 .money input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; color: inherit; padding: 0 0 0 6px; outline: none; }
 .money:focus-within { outline: 2px solid var(--navy); outline-offset: 2px; }
 input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 36px; background: transparent; cursor: pointer; margin: 0; }
@@ -94,7 +94,7 @@ input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius
 .sum li { display: flex; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--rule); }
 .sum li span:last-child { font-family: var(--serif); font-size: 22px; letter-spacing: -0.01em; }
 .sum li.grow span:last-child { color: var(--green-ink); }
-.note { margin-top: 18px; font-size: 14.5px; color: var(--ink-3); max-width: 44em; }
+.note { margin-top: 18px; font-size: 15px; color: var(--ink-3); max-width: 44em; }
 
 /* Steps and claims */
 .split { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: clamp(32px, 7vw, 100px); align-items: center; }
@@ -111,7 +111,7 @@ input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border-radius
 .install ol { margin: 14px 0 0; padding-left: 1.3em; color: var(--ink-2); }
 .install li { margin-bottom: 6px; padding-left: 4px; }
 
-footer { padding-block: 48px 64px; border-top: 1px solid var(--rule); color: var(--ink-2); font-size: 14.5px; }
+footer { padding-block: 48px 64px; border-top: 1px solid var(--rule); color: var(--ink-2); font-size: 15px; }
 footer .wrap { display: grid; gap: 14px; }
 footer p { max-width: 62em; }
 

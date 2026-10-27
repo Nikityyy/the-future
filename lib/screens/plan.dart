@@ -79,7 +79,7 @@ class AssumptionsSheet extends StatelessWidget {
                     Row2(
                       title: 'In today’s money',
                       subtitle: 'Takes inflation off the result, so €1,000 means what €1,000 buys now',
-                      trailing: _Switch(state.realTerms, (v) => state.setPlan(realTerms: v)),
+                      trailing: Switch2(on: state.realTerms, onChanged: (v) => state.setPlan(realTerms: v)),
                     ),
                     Row2(title: 'Inflation', trailing: _Stepper(text: _pct(state.inflation), onMinus: () => state.setPlan(inflation: (state.inflation - 0.5).clamp(0, 10)), onPlus: () => state.setPlan(inflation: (state.inflation + 0.5).clamp(0, 10)))),
                     Row2(title: 'Yearly raise', subtitle: 'Add more each year, such as with your pay', trailing: _Stepper(text: _pct(state.raisePercent), onMinus: () => state.setPlan(raisePercent: (state.raisePercent - 1).clamp(0, 30)), onPlus: () => state.setPlan(raisePercent: (state.raisePercent + 1).clamp(0, 30)))),
@@ -112,8 +112,8 @@ class AssumptionsSheet extends StatelessWidget {
       );
 }
 
-class _Switch extends StatelessWidget {
-  const _Switch(this.on, this.onChanged);
+class Switch2 extends StatelessWidget {
+  const Switch2({super.key, required this.on, required this.onChanged});
   final bool on;
   final ValueChanged<bool> onChanged;
 

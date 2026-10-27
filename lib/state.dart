@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'demo.dart';
+import 'platform/bio.dart';
 import 'projection.dart';
 import 'snapshot.dart';
 import 'vault.dart';
@@ -113,6 +114,54 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     } on WrongSecret {
       return false;
     }
+    await _finishUnlock();
+    return true;
+  }
+
+  // Face ID, Touch ID or fingerprint: the passkey's secret seals the passphrase a second time.
+
+  bool bioSupported = false;
+
+  bool get hasBio => _prefs.containsKey('bio');
+
+  Future<void> checkBio() async {
+    bioSupported = await Bio.supported();
+    notifyListeners();
+  }
+
+  /// Needs the app unlocked. Returns an error message, or null when it worked.
+  Future<String?> enableBio() async {
+    final pass = _passphrase;
+    if (pass == null) return 'Unlock the app first.';
+    final id = await Bio.enroll();
+    if (id == null) return 'This device cannot unlock with ${Bio.label} here. On iPhone it needs iOS 18 or later.';
+    final secret = await Bio.secret(id);
+    if (secret == null) return 'Cancelled.';
+    await _prefs.setString('bio', jsonEncode({'id': id, 'vault': await seal(pass, secret)}));
+    notifyListeners();
+    return null;
+  }
+
+  Future<void> disableBio() async {
+    await _prefs.remove('bio');
+    notifyListeners();
+  }
+
+  /// Asks for the face or finger. False when it was cancelled or failed.
+  Future<bool> unlockWithBio() async {
+    try {
+      final b = jsonDecode(_prefs.getString('bio')!) as Map<String, dynamic>;
+      final secret = await Bio.secret(b['id'] as String);
+      if (secret == null) return false;
+      _passphrase = await open(b['vault'] as Map<String, dynamic>, secret);
+    } catch (_) {
+      return false;
+    }
+    await _finishUnlock();
+    return true;
+  }
+
+  Future<void> _finishUnlock() async {
     final cache = _prefs.getString('cache');
     if (cache != null) {
       final text = await open(jsonDecode(cache) as Map<String, dynamic>, _passphrase!);
@@ -121,7 +170,6 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     locked = false;
     notifyListeners();
     unawaited(refresh());
-    return true;
   }
 
   void lock() {

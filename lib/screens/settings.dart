@@ -2,12 +2,14 @@ import 'package:flutter/widgets.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../format.dart';
+import '../platform/bio.dart';
 import '../platform/web_glue.dart';
 import '../state.dart';
 import '../theme.dart';
 import '../ui/chrome.dart';
 import '../ui/lists.dart';
 import '../version.dart';
+import 'plan.dart' show Switch2;
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage(this.state, {super.key});
@@ -33,6 +35,12 @@ class SettingsPage extends StatelessWidget {
                     if (live) ...[
                       Row2(title: 'Connected', subtitle: state.snapshot == null ? null : 'Updated ${ago(state.snapshot!.generatedAt)}'),
                       Row2(title: 'Refresh now', chevron: true, onTap: state.refresh),
+                      if (state.bioSupported)
+                        Row2(
+                          title: 'Unlock with ${Bio.label.toLowerCase() == 'biometrics' ? 'biometrics' : Bio.label}',
+                          subtitle: state.hasBio ? 'On. The PIN still works.' : 'Skips the PIN. Needs iOS 18 or later on iPhone.',
+                          trailing: _BioSwitch(state),
+                        ),
                       Row2(title: 'Lock now', chevron: true, onTap: state.lock),
                       Row2(title: 'Disconnect and erase', titleColor: C.loss, onTap: () => state.disconnect()),
                     ] else ...[
@@ -64,5 +72,32 @@ class SettingsPage extends StatelessWidget {
             ],
           );
         },
+      );
+}
+
+class _BioSwitch extends StatefulWidget {
+  const _BioSwitch(this.state);
+  final AppState state;
+
+  @override
+  State<_BioSwitch> createState() => _BioSwitchState();
+}
+
+class _BioSwitchState extends State<_BioSwitch> {
+  String? _error;
+
+  Future<void> _toggle() async {
+    if (widget.state.hasBio) return widget.state.disableBio();
+    final e = await widget.state.enableBio();
+    if (mounted) setState(() => _error = e);
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Switch2(on: widget.state.hasBio, onChanged: (_) => _toggle()),
+          if (_error != null) Padding(padding: const EdgeInsets.only(top: 6), child: SizedBox(width: 170, child: Text(_error!, textAlign: TextAlign.right, style: sans(12, color: C.loss)))),
+        ],
       );
 }

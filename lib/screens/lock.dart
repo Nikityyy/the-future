@@ -9,12 +9,15 @@ import '../ui/mark.dart';
 
 /// Six dots and a keypad. [onDone] says whether the PIN was accepted.
 class PinPad extends StatefulWidget {
-  const PinPad({super.key, required this.title, this.subtitle, required this.onDone, this.footer});
+  const PinPad({super.key, required this.title, this.subtitle, required this.onDone, this.footer, this.onBio});
 
   final String title;
   final String? subtitle;
   final Future<bool> Function(String pin) onDone;
   final Widget? footer;
+
+  /// Shows a Face ID key in the free corner of the pad.
+  final VoidCallback? onBio;
 
   @override
   State<PinPad> createState() => _PinPadState();
@@ -97,7 +100,14 @@ class _PinPadState extends State<PinPad> with SingleTickerProviderStateMixin {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 9),
                       child: k.isEmpty
-                          ? const SizedBox(width: 76, height: 76)
+                          ? (widget.onBio == null
+                              ? const SizedBox(width: 76, height: 76)
+                              : Pressable(
+                                  scale: 0.9,
+                                  semanticLabel: 'Unlock with biometrics',
+                                  onTap: widget.onBio,
+                                  child: const SizedBox(width: 76, height: 76, child: Center(child: CustomPaint(size: Size(34, 34), painter: FaceIdPainter()))),
+                                ))
                           : Pressable(
                               haptic: k != '<',
                               scale: 0.9,
@@ -121,6 +131,33 @@ class _PinPadState extends State<PinPad> with SingleTickerProviderStateMixin {
       );
 
   static double _wave(double t) => t == 0 ? 0 : (t * 12).floor().isEven ? 1 : -1;
+}
+
+/// The Face ID glyph: four corners, two eyes, a nose and a smile.
+class FaceIdPainter extends CustomPainter {
+  const FaceIdPainter({this.color = C.navy});
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size s) {
+    final p = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = s.width * 0.07
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final w = s.width, a = w * 0.3, i = w * 0.04, o = w - i;
+    for (final c in [(i, i, 1.0, 1.0), (o, i, -1.0, 1.0), (i, o, 1.0, -1.0), (o, o, -1.0, -1.0)]) {
+      canvas.drawPath(Path()..moveTo(c.$1, c.$2 + c.$4 * a)..lineTo(c.$1, c.$2 + c.$4 * a * 0.45)..quadraticBezierTo(c.$1, c.$2, c.$1 + c.$3 * a * 0.45, c.$2)..lineTo(c.$1 + c.$3 * a, c.$2), p);
+    }
+    canvas.drawLine(Offset(w * 0.36, w * 0.38), Offset(w * 0.36, w * 0.45), p);
+    canvas.drawLine(Offset(w * 0.64, w * 0.38), Offset(w * 0.64, w * 0.45), p);
+    canvas.drawPath(Path()..moveTo(w * 0.5, w * 0.4)..lineTo(w * 0.5, w * 0.54)..lineTo(w * 0.46, w * 0.54), p);
+    canvas.drawArc(Rect.fromCenter(center: Offset(w * 0.5, w * 0.6), width: w * 0.3, height: w * 0.16), 0.35, 2.45, false, p);
+  }
+
+  @override
+  bool shouldRepaint(FaceIdPainter old) => old.color != color;
 }
 
 class _Backspace extends StatelessWidget {
@@ -162,6 +199,13 @@ class _LockScreenState extends State<LockScreen> {
   int _fails = 0;
   DateTime? _until;
 
+  @override
+  void initState() {
+    super.initState();
+    // Offer the face straight away; if the browser wants a tap first, the key below does it.
+    if (widget.state.hasBio) WidgetsBinding.instance.addPostFrameCallback((_) => widget.state.unlockWithBio());
+  }
+
   Future<bool> _try(String pin) async {
     final until = _until;
     if (until != null && DateTime.now().isBefore(until)) return false;
@@ -187,6 +231,7 @@ class _LockScreenState extends State<LockScreen> {
               title: 'Enter your PIN',
               subtitle: waiting ? 'Too many tries. Wait 30 seconds.' : 'Your portfolio is sealed on this phone.',
               onDone: _try,
+              onBio: widget.state.hasBio ? widget.state.unlockWithBio : null,
               footer: Pressable(
                 onTap: () => widget.state.disconnect(),
                 child: Text('Forgot PIN? Disconnect', style: sans(14, color: C.ink2)),

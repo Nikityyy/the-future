@@ -77,7 +77,8 @@ if (form) {
     $('addNote').textContent = eur(monthly) + ' a month for ' + years + ' years';
 
     // Chart: band between cautious and hopeful, the picked case as the line.
-    const W = 640, H = 300, L = 44, T = 10, B = 28, R = 12;
+    const W = Math.round($('chart').getBoundingClientRect().width) || 640, H = W < 480 ? 250 : 300, L = 46, T = 10, B = 28, R = 12;
+    $('chart').setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     const yMax = niceMax(all[2][months]);
     const x = (m) => L + ((W - L - R) * m) / months;
     const y = (v) => H - B - ((H - T - B) * v) / yMax;
@@ -103,6 +104,7 @@ if (form) {
     $('chartLabel').textContent = 'In ' + years + ' years: ' + eur(all[0][months]) + ' cautious, ' + eur(all[1][months]) + ' expected, ' + eur(all[2][months]) + ' hopeful.';
   }
 
+  addEventListener('resize', () => update());
   form.addEventListener('input', update);
   form.addEventListener('submit', (e) => e.preventDefault());
   $('start').addEventListener('blur', () => { $('start').value = (Number($('start').value.replace(/[^\d]/g, '')) || 0).toLocaleString('en'); });

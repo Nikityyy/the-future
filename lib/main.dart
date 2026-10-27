@@ -14,6 +14,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final state = AppState(await SharedPreferences.getInstance());
   runApp(FutureApp(state));
+  state.checkBio();
   WidgetsBinding.instance.addPostFrameCallback((_) {
     Haptics.init();
     hideSplash();
