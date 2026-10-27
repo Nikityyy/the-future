@@ -43,7 +43,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   DateTime? _hiddenAt;
 
   // The plan.
-  double? monthlyOverride;
+  /// The monthly amount you set, kept for each view (all, funds, crypto...) on its own.
+  Map<String, double> monthlyBy = {};
   int years = 20;
   int scenario = 1; // 0 cautious, 1 expected, 2 hopeful
   bool realTerms = false;
@@ -71,6 +72,11 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   double get usual => snapshot?.usualFor(active).roundToDouble() ?? 0;
+
+  String get _viewKey => filter.isEmpty ? 'all' : ([for (final k in active) k.name]..sort()).join('+');
+
+  /// What you set for this view, if anything.
+  double? get monthlyOverride => monthlyBy[_viewKey];
 
   double get monthly => monthlyOverride ?? usual;
 
@@ -242,7 +248,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _passphrase = null;
     locked = false;
     error = null;
-    monthlyOverride = null;
+    monthlyBy = {};
     oneOffs = [];
     filter = {};
     hide = fmt.hideAmounts = false;
@@ -295,7 +301,13 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     Returns? returns,
     List<OneOffEntry>? oneOffs,
   }) {
-    if (monthly != _keep) monthlyOverride = monthly as double?;
+    if (monthly != _keep) {
+      if (monthly == null) {
+        monthlyBy.remove(_viewKey);
+      } else {
+        monthlyBy[_viewKey] = monthly as double;
+      }
+    }
     this.years = years ?? this.years;
     this.scenario = scenario ?? this.scenario;
     this.realTerms = realTerms ?? this.realTerms;
@@ -314,7 +326,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       jsonEncode({
         'filter': [for (final k in filter) k.name],
         'hide': hide,
-        'monthly': monthlyOverride,
+        'monthlyBy': monthlyBy,
         'years': years,
         'scenario': scenario,
         'real': realTerms,
@@ -332,7 +344,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   void _loadPlan() {
     try {
       final j = jsonDecode(_prefs.getString('plan') ?? '{}') as Map<String, dynamic>;
-      monthlyOverride = (j['monthly'] as num?)?.toDouble();
+      monthlyBy = {for (final e in (j['monthlyBy'] as Map<String, dynamic>? ?? {}).entries) e.key: (e.value as num).toDouble()};
       filter = {for (final n in (j['filter'] as List? ?? [])) Kind.values.byName(n as String)};
       hide = fmt.hideAmounts = j['hide'] as bool? ?? false;
       years = j['years'] as int? ?? years;
@@ -346,6 +358,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         returns = {
           for (final k in Kind.values) k: [for (final v in r[k.name] as List) (v as num).toDouble()],
         };
+        // The crypto range was narrowed: carry over anyone who never changed it.
+        if (returns[Kind.crypto]!.join(',') == '-10.0,8.0,25.0') returns[Kind.crypto] = [...defaultReturns[Kind.crypto]!];
       }
       oneOffs = [
         for (final o in (j['oneOffs'] as List? ?? []))

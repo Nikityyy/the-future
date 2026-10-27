@@ -7,7 +7,7 @@ typedef Returns = Map<Kind, List<double>>;
 
 const defaultReturns = <Kind, List<double>>{
   Kind.fund: [3.0, 6.5, 9.0],
-  Kind.crypto: [-10.0, 8.0, 25.0],
+  Kind.crypto: [-5.0, 7.0, 18.0],
   Kind.metal: [0.0, 3.0, 6.0],
 };
 

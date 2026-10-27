@@ -57,4 +57,25 @@ void main() {
     final again = await demo({'plan': '{"savings":2.5}'});
     expect(again.savingsRate, 2.5);
   });
+
+  test('all is the sum of its parts, and each view keeps its own monthly amount', () async {
+    final s = await demo();
+    final all = s.projectionFor(1).end;
+    var parts = 0.0;
+    for (final k in s.snapshot!.kinds) {
+      s.toggleKind(k);
+      parts += s.projectionFor(1).end;
+    }
+    s.showAllKinds();
+    expect(all, closeTo(parts, 1), reason: 'same money in, same returns, so the views must add up');
+
+    s.setPlan(monthly: 1000.0);
+    s.toggleKind(Kind.crypto);
+    expect(s.monthly, s.snapshot!.usualFor({Kind.crypto}).roundToDouble(), reason: 'crypto does not inherit the amount set for all');
+    s.setPlan(monthly: 50.0);
+    s.showAllKinds();
+    expect(s.monthly, 1000);
+    s.toggleKind(Kind.crypto);
+    expect(s.monthly, 50);
+  });
 }
