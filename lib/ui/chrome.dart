@@ -135,34 +135,83 @@ class BackBar extends StatelessWidget {
 }
 
 /// A pushed page whose back button stays put while the content scrolls
-/// under it, softened by a fade at the top edge.
-class BackPage extends StatelessWidget {
-  const BackPage({super.key, this.onBack, required this.child});
+/// under it, softened by a fade at the top edge. Once the page's own large
+/// title ([titleKey]) has scrolled under the bar, [title] settles into the
+/// bar, as on iOS.
+class BackPage extends StatefulWidget {
+  const BackPage({super.key, this.onBack, this.title, this.titleKey, required this.child});
 
   final VoidCallback? onBack;
+  final String? title;
+  final GlobalKey? titleKey;
   final Widget child;
 
   /// Room to leave at the top of the content for the button.
   static double space() => 62 + browserSafeArea().top;
 
   @override
-  Widget build(BuildContext context) => Stack(
-        children: [
-          Positioned.fill(child: child),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: IgnorePointer(
-              child: Container(
-                height: space(),
-                decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, stops: const [0.55, 1], colors: [C.ground, C.ground.withValues(alpha: 0)])),
-              ),
+  State<BackPage> createState() => _BackPageState();
+}
+
+class _BackPageState extends State<BackPage> {
+  bool _under = false;
+
+  bool _onScroll(ScrollNotification n) {
+    // Positions settle at the next layout, so look after the frame.
+    if (n.depth == 0 && widget.title != null) WidgetsBinding.instance.addPostFrameCallback((_) => _check());
+    return false;
+  }
+
+  void _check() {
+    if (!mounted) return;
+    final big = widget.titleKey?.currentContext?.findRenderObject() as RenderBox?;
+    final page = context.findRenderObject() as RenderBox?;
+    if (big == null || page == null || !big.attached) return;
+    // Under once most of the large title has gone behind the bar.
+    final under = big.localToGlobal(Offset(0, big.size.height * 0.75), ancestor: page).dy < BackPage.space() - 8;
+    if (under != _under) setState(() => _under = under);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final top = browserSafeArea().top;
+    return Stack(
+      children: [
+        Positioned.fill(child: NotificationListener<ScrollNotification>(onNotification: _onScroll, child: widget.child)),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: IgnorePointer(
+            child: Stack(
+              children: [
+                Container(
+                  height: BackPage.space(),
+                  decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, stops: const [0.55, 1], colors: [C.ground, C.ground.withValues(alpha: 0)])),
+                ),
+                if (widget.title != null)
+                  AnimatedOpacity(
+                    opacity: _under ? 1 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: Container(
+                      height: BackPage.space(),
+                      padding: EdgeInsets.fromLTRB(72, 10 + top, 72, 4),
+                      decoration: const BoxDecoration(color: C.ground, border: Border(bottom: BorderSide(color: C.rule, width: 0.5))),
+                      alignment: Alignment.topCenter,
+                      child: SizedBox(
+                        height: 44,
+                        child: Center(child: Text(widget.title!, maxLines: 1, overflow: TextOverflow.ellipsis, style: sans(16, weight: FontWeight.w600))),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-          Positioned(top: 0, left: 0, child: BackBar(onBack: onBack)),
-        ],
-      );
+        ),
+        Positioned(top: 0, left: 0, child: BackBar(onBack: widget.onBack)),
+      ],
+    );
+  }
 }
 
 /// The sheet's scroll controller, so dragging down from the top closes it.

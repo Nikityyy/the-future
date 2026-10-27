@@ -32,6 +32,7 @@ class _ConnectSheetState extends State<ConnectSheet> {
   final _field = TextEditingController();
   bool _busy = false;
   bool _entering = false;
+  final _title = GlobalKey(), _entryTitle = GlobalKey();
   String? _error;
   String? _passphrase;
   String? _firstPin;
@@ -95,6 +96,8 @@ class _ConnectSheetState extends State<ConnectSheet> {
   /// The passphrase on a page of its own: the field sits at the top, well above the keyboard.
   Widget _entry() => BackPage(
     onBack: () => setState(() => _entering = false),
+    title: 'Your passphrase',
+    titleKey: _entryTitle,
     child: CustomScrollView(
       slivers: [
         SliverToBoxAdapter(child: SizedBox(height: BackPage.space())),
@@ -104,7 +107,7 @@ class _ConnectSheetState extends State<ConnectSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Your passphrase', style: serif(40)),
+                Text('Your passphrase', key: _entryTitle, style: serif(40)),
                 const SizedBox(height: 10),
                 Text('The SYNC_PASSPHRASE you saved as a GitHub secret. It opens your sealed portfolio on this phone.', style: sans(15, color: C.ink2, height: 1.45)),
               ],
@@ -175,6 +178,8 @@ class _ConnectSheetState extends State<ConnectSheet> {
     }
     if (_entering) return _entry();
     return BackPage(
+      title: 'Connect Bitpanda',
+      titleKey: _title,
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(child: SizedBox(height: BackPage.space())),
@@ -184,7 +189,7 @@ class _ConnectSheetState extends State<ConnectSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  BlurText('Connect Bitpanda', style: serif(40)),
+                  BlurText('Connect Bitpanda', key: _title, style: serif(40)),
                   const SizedBox(height: 10),
                   Text(
                     'Your own free copy of The Future on GitHub reads your portfolio, seals it, and publishes only the sealed file. Your key never touches this phone.',

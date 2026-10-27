@@ -29,9 +29,13 @@ class AssetPage extends StatelessWidget {
     final now = h.amount > 0 ? h.value / h.amount : 0.0;
     final share = s.value > 0 ? h.value / s.value * 100 : 0.0;
     final up = h.gain >= 0;
+    // Stable across rebuilds of the route, unique per holding.
+    final name = GlobalObjectKey(h);
     String unit(double v) => eur(v, cents: v < 1000);
 
     return BackPage(
+      title: h.name,
+      titleKey: name,
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(child: SizedBox(height: BackPage.space())),
@@ -43,7 +47,7 @@ class AssetPage extends StatelessWidget {
                 children: [
                   Text('${h.symbol}  ·  ${kindNames[h.kind]}', style: sans(14, color: C.ink2)),
                   const SizedBox(height: 4),
-                  BlurText(h.name, style: serif(34, height: 1.05)),
+                  BlurText(h.name, key: name, style: serif(34, height: 1.05)),
                   const SizedBox(height: 18),
                   CountUp(h.value, style: serif(56, tracking: -1.8)),
                   const SizedBox(height: 8),
