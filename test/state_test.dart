@@ -13,16 +13,15 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   tearDown(() => hideAmounts = false);
 
-  test('the filter starts on everything and a first tap picks one kind', () async {
+  test('the filter starts on everything and a tap picks one kind', () async {
     final s = await demo();
     expect(s.active, {Kind.fund, Kind.crypto, Kind.metal});
     s.toggleKind(Kind.fund);
     expect(s.active, {Kind.fund});
     s.toggleKind(Kind.crypto);
-    expect(s.active, {Kind.fund, Kind.crypto});
-    s.toggleKind(Kind.fund);
+    expect(s.active, {Kind.crypto}, reason: 'another chip switches to it, it does not add');
     s.toggleKind(Kind.crypto);
-    expect(s.filter, isEmpty, reason: 'nothing left falls back to all');
+    expect(s.filter, isEmpty, reason: 'the same chip again shows everything');
   });
 
   test('the projection only counts the picked kinds', () async {

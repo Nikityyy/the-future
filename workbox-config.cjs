@@ -17,8 +17,8 @@ module.exports = {
   // CanvasKit's wasm is ~7 MB.
   maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
   navigateFallback: 'index.html',
-  // Wait for the app to ask (SKIP_WAITING message) before switching versions.
-  skipWaiting: false,
+  // A new version takes over at once; the page then reloads itself (see index.html).
+  skipWaiting: true,
   clientsClaim: true,
   cleanupOutdatedCaches: true,
   inlineWorkboxRuntime: true,

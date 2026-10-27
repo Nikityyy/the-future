@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart' show Clipboard;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../platform/haptics.dart';
@@ -29,6 +30,7 @@ class _ConnectSheetState extends State<ConnectSheet> {
   final _field = TextEditingController();
   bool _busy = false;
   bool _show = false;
+  bool _entering = false;
   String? _error;
   String? _passphrase;
   String? _firstPin;
@@ -78,16 +80,84 @@ class _ConnectSheetState extends State<ConnectSheet> {
     return true;
   }
 
-  /// Once the keyboard is up, scroll the sheet so the field sits above it.
-  void _lift() {
-    final c = SheetScroll.of(context);
-    if (c == null) return;
-    for (final ms in [320, 650]) {
-      Future.delayed(Duration(milliseconds: ms), () {
-        if (mounted && c.hasClients) c.animateTo(c.position.maxScrollExtent, duration: const Duration(milliseconds: 220), curve: Curves.easeOutCubic);
-      });
-    }
+  Future<void> _paste() async {
+    final data = await Clipboard.getData('text/plain');
+    final t = data?.text?.trim();
+    if (t == null || t.isEmpty) return;
+    Haptics.selection();
+    setState(() {
+      _field.text = t;
+      _error = null;
+    });
   }
+
+  /// The passphrase on a page of its own: the field sits at the top, well above the keyboard.
+  Widget _entry() => CustomScrollView(
+        controller: SheetScroll.of(context),
+        slivers: [
+          SliverToBoxAdapter(child: SheetHeaderBar(top: browserSafeArea().top)),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 6, 24, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Your passphrase', style: serif(40)),
+                  const SizedBox(height: 10),
+                  Text('The SYNC_PASSPHRASE you saved as a GitHub secret. It opens your sealed portfolio on this phone.', style: sans(15, color: C.ink2, height: 1.45)),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    decoration: BoxDecoration(color: C.raised, borderRadius: BorderRadius.circular(22), border: Border.all(color: C.rule.withValues(alpha: 0.06))),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: CupertinoTextField(
+                            controller: _field,
+                            autofocus: true,
+                            placeholder: 'Passphrase',
+                            placeholderStyle: sans(16, color: C.ink3),
+                            style: sans(16),
+                            obscureText: !_show,
+                            autocorrect: false,
+                            enableSuggestions: false,
+                            decoration: null,
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            onSubmitted: (_) => _check(),
+                          ),
+                        ),
+                        Pressable(onTap: _paste, child: Padding(padding: const EdgeInsets.fromLTRB(10, 8, 6, 8), child: Text('Paste', style: sans(14, weight: FontWeight.w500, color: C.navy)))),
+                        Pressable(onTap: () => setState(() => _show = !_show), child: Padding(padding: const EdgeInsets.fromLTRB(8, 8, 0, 8), child: Text(_show ? 'Hide' : 'Show', style: sans(14, color: C.ink2)))),
+                      ],
+                    ),
+                  ),
+                  if (_error != null) Padding(padding: const EdgeInsets.fromLTRB(4, 10, 4, 0), child: Text(_error!, style: sans(13.5, color: C.loss, height: 1.4))),
+                  const SizedBox(height: 18),
+                  AppButton('Open my portfolio', busy: _busy, onTap: _check),
+                  const SizedBox(height: 12),
+                  Pressable(
+                    onTap: () => setState(() {
+                      _entering = false;
+                      _error = null;
+                    }),
+                    child: Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Center(child: Text('Back', style: sans(15, color: C.ink2)))),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(child: SizedBox(height: 40 + MediaQuery.viewInsetsOf(context).bottom)),
+        ],
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +176,7 @@ class _ConnectSheetState extends State<ConnectSheet> {
         ],
       );
     }
+    if (_entering) return _entry();
     return CustomScrollView(
       controller: SheetScroll.of(context),
       slivers: [
@@ -143,49 +214,14 @@ class _ConnectSheetState extends State<ConnectSheet> {
           ),
         ),
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(padding: const EdgeInsets.fromLTRB(4, 0, 4, 8), child: Text('STEP 3', style: sans(13, weight: FontWeight.w500, color: C.ink2, tracking: 0.1))),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  decoration: BoxDecoration(color: C.raised, borderRadius: BorderRadius.circular(22), border: Border.all(color: C.rule.withValues(alpha: 0.06))),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: CupertinoTextField(
-                          controller: _field,
-                          placeholder: 'Your SYNC_PASSPHRASE',
-                          placeholderStyle: sans(16, color: C.ink3),
-                          style: sans(16),
-                          obscureText: !_show,
-                          autocorrect: false,
-                          enableSuggestions: false,
-                          decoration: null,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          onSubmitted: (_) => _check(),
-                          onTap: _lift,
-                        ),
-                      ),
-                      Pressable(
-                        onTap: () => setState(() => _show = !_show),
-                        child: Padding(padding: const EdgeInsets.only(left: 10), child: Text(_show ? 'Hide' : 'Show', style: sans(14, color: C.ink2))),
-                      ),
-                    ],
-                  ),
-                ),
-                if (_error != null) Padding(padding: const EdgeInsets.fromLTRB(4, 10, 4, 0), child: Text(_error!, style: sans(13.5, color: C.loss, height: 1.4))),
-                const SizedBox(height: 18),
-                AppButton('Open my portfolio', busy: _busy, onTap: _check),
-                const SizedBox(height: 40),
-              ],
-            ),
+          child: Group(
+            header: 'STEP 3',
+            children: [
+              Row2(title: 'Enter your passphrase', subtitle: 'Opens your portfolio on this phone', chevron: true, onTap: () => setState(() => _entering = true)),
+            ],
           ),
         ),
-        // Room for the keyboard, so the passphrase field can rise above it.
-        SliverToBoxAdapter(child: SizedBox(height: 40 + browserSafeArea().bottom + MediaQuery.viewInsetsOf(context).bottom)),
+        SliverToBoxAdapter(child: SizedBox(height: 40 + browserSafeArea().bottom)),
       ],
     );
   }

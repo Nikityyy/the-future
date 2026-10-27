@@ -37,6 +37,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   bool locked = false;
   Snapshot? snapshot;
   bool refreshing = false;
+  DateTime? checkedAt;
   String? error;
   String? _passphrase;
   DateTime? _hiddenAt;
@@ -222,6 +223,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       final sealed = await _fetchSealed();
       snapshot = Snapshot.fromJson(jsonDecode(await open(sealed, _passphrase!)) as Map<String, dynamic>);
       await _prefs.setString('cache', jsonEncode(sealed));
+      checkedAt = DateTime.now();
     } on SnapshotMissing {
       error = 'No snapshot published yet. Run the sync workflow on GitHub.';
     } on WrongSecret {
@@ -263,13 +265,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   static const _keep = Object();
 
+  /// One kind at a time: a tap shows just that kind, a tap on it again shows everything.
   void toggleKind(Kind k) {
-    final all = snapshot?.kinds ?? Kind.values.toSet();
-    // From "all", a tap picks just that kind; after that taps add and remove.
-    final next = filter.isEmpty ? {k} : {...active};
-    if (filter.isNotEmpty && !next.remove(k)) next.add(k);
-    // Nothing left, or everything: back to "all".
-    filter = next.isEmpty || next.length == all.length ? {} : next;
+    filter = filter.length == 1 && filter.contains(k) ? {} : {k};
     _save();
     notifyListeners();
   }

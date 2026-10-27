@@ -3,9 +3,11 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../format.dart';
 import '../platform/bio.dart';
+import '../platform/haptics.dart';
 import '../platform/web_glue.dart';
 import '../state.dart';
 import '../theme.dart';
+import '../ui/basics.dart' show Spinner;
 import '../ui/chrome.dart';
 import '../ui/lists.dart';
 import '../version.dart';
@@ -34,7 +36,16 @@ class SettingsPage extends StatelessWidget {
                   children: [
                     if (live) ...[
                       Row2(title: 'Connected', subtitle: state.snapshot == null ? null : 'Updated ${ago(state.snapshot!.generatedAt)}'),
-                      Row2(title: 'Refresh now', chevron: true, onTap: state.refresh),
+                      Row2(
+                        title: 'Refresh now',
+                        subtitle: state.refreshing ? 'Checking for a newer snapshot' : state.checkedAt == null ? 'Looks for a newer snapshot' : 'Checked just now. GitHub updates it about every three hours.',
+                        trailing: state.refreshing ? const Spinner() : null,
+                        chevron: !state.refreshing,
+                        onTap: () {
+                          Haptics.selection();
+                          state.refresh();
+                        },
+                      ),
                       if (state.bioSupported)
                         Row2(
                           title: 'Unlock with ${Bio.label.toLowerCase() == 'biometrics' ? 'biometrics' : Bio.label}',
