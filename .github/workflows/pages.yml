@@ -38,18 +38,16 @@ jobs:
       - run: flutter analyze
       - run: flutter test
 
-  deploy:
-    needs: test
+  # Builds while the tests run; the deploy below waits for both.
+  build:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -72,8 +70,31 @@ jobs:
           --dart-define=APP_COMMIT=${{ github.sha }}
           --dart-define=APP_REPO=${{ github.repository }}
 
+      # workbox-cli is a locked dev dependency, so npm restores it from the cache.
       - name: Generate service worker
-        run: npx --yes workbox-cli@7.3.0 generateSW workbox-config.cjs
+        run: npm ci && npx workbox generateSW workbox-config.cjs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: build/web
+          retention-days: 1
+
+  deploy:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: build/web
 
       - name: Assemble site
         run: |

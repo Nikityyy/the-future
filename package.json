@@ -4,9 +4,14 @@
   "description": "Your Bitpanda portfolio and what it becomes: a private Flutter PWA.",
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "sync": "node tools/sync.mjs _site/app/data.enc"
+  },
+  "devDependencies": {
+    "workbox-cli": "7.3.0"
   }
 }

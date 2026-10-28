@@ -1,5 +1,5 @@
 // Generates build/web/sw.js after `flutter build web`:
-//   npx --yes workbox-cli@7.3.0 generateSW workbox-config.cjs
+//   npx workbox generateSW workbox-config.cjs (after npm ci)
 module.exports = {
   globDirectory: 'build/web/',
   globPatterns: ['**/*.{html,js,mjs,json,wasm,png,webp,svg,ttf,otf,frag,bin}'],
