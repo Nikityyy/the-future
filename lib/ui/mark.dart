@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/widgets.dart';
 
 /// The app icon: a stroke that rises to a glowing point, with faint ripples
-/// around it. Painted, so it stays sharp at any size. The home-screen icon (web/icons/icon.svg) is a flat, white, full-bleed version of the same stroke.
+/// around it. Painted, so it stays sharp at any size. The home-screen icon (web/icons/icon.svg) is a separate flat drawing.
 class AppMark extends StatelessWidget {
   const AppMark({super.key, this.size = 64});
 
