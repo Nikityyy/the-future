@@ -40,7 +40,7 @@ class SettingsPage extends StatelessWidget {
                       Row2(title: 'Connected', subtitle: state.snapshot == null ? null : 'Updated ${ago(state.snapshot!.generatedAt)}'),
                       Row2(
                         title: 'Refresh now',
-                        subtitle: state.refreshing ? 'Checking for a newer snapshot' : state.checkedAt == null ? 'Looks for a newer snapshot' : 'Checked just now. GitHub updates it about every three hours.',
+                        subtitle: state.refreshing ? 'Checking for a newer snapshot' : state.checkedAt == null ? 'Looks for a newer snapshot' : 'Checked just now. Prices are read live; holdings sync about every three hours.',
                         trailing: state.refreshing ? const Spinner() : null,
                         chevron: !state.refreshing,
                         onTap: () {

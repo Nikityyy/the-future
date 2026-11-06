@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/widgets.dart';
 
 import '../format.dart';
@@ -15,10 +16,13 @@ const _monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
 /// What the whole portfolio was worth over time, from Bitpanda, with the
 /// change over the picked period. The change leaves out money you added, so
 /// a deposit never shows up as growth. Drag along the line to read a moment.
+/// With [only], just those kinds: Bitpanda keeps no history per kind, so the
+/// line is built from the prices and the units you held (see kindValues).
 class ValueHistory extends StatefulWidget {
-  const ValueHistory(this.s, {super.key});
+  const ValueHistory(this.s, {super.key, this.only});
 
   final Snapshot s;
+  final Set<Kind>? only;
 
   @override
   State<ValueHistory> createState() => _ValueHistoryState();
@@ -28,19 +32,59 @@ class _ValueHistoryState extends State<ValueHistory> {
   String _frame = 'month';
   int? _scrub;
 
+  /// The lines built for [ValueHistory.only], by frame, and the ones being built or failed.
+  final _built = <String, List<(DateTime, double)>>{};
+  final _loading = <String>{};
+  final _failed = <String>{};
+
+  @override
+  void didUpdateWidget(ValueHistory old) {
+    super.didUpdateWidget(old);
+    if (!identical(old.s, widget.s) || !setEquals(old.only, widget.only)) {
+      _built.clear();
+      _loading.clear();
+      _failed.clear();
+      _scrub = null;
+    }
+  }
+
+  void _build(String frame) {
+    if (widget.only == null || _built.containsKey(frame) || _loading.contains(frame) || _failed.contains(frame)) return;
+    _loading.add(frame);
+    final (s, only) = (widget.s, widget.only!);
+    kindValues(s, only, frame, [for (final p in s.history[frame]!) p.$1]).then(
+      (pts) {
+        if (!mounted || !identical(s, widget.s) || !setEquals(only, widget.only)) return;
+        setState(() {
+          _loading.remove(frame);
+          _built[frame] = pts;
+        });
+      },
+      onError: (Object _) {
+        if (!mounted || !identical(s, widget.s) || !setEquals(only, widget.only)) return;
+        setState(() {
+          _loading.remove(frame);
+          _failed.add(frame);
+        });
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final frames = [for (final f in _frames) if ((widget.s.history[f.$1]?.length ?? 0) > 1) f];
     if (frames.isEmpty) return const SizedBox();
     final f = frames.firstWhere((f) => f.$1 == _frame, orElse: () => frames.last);
-    final pts = widget.s.history[f.$1]!;
+    _build(f.$1);
+    final pts = widget.only == null ? widget.s.history[f.$1] : _built[f.$1];
+    if (pts == null) return _waiting(frames, f);
     final (t0, v0) = pts.first;
     final (t1, v1) = pts.last;
     // The gain leaves out money added; the percent is the Modified Dietz
     // return: the gain over what was invested on average during the period.
-    final added = widget.s.netAddedBetween(t0, t1);
+    final added = widget.s.netAddedBetween(t0, t1, kinds: widget.only);
     final gain = v1 - v0 - added;
-    final base = v0 + widget.s.weightedAddedBetween(t0, t1);
+    final base = v0 + widget.s.weightedAddedBetween(t0, t1, kinds: widget.only);
     final up = gain >= 0;
     final label = f.$1 == 'all' ? 'since ${_monthNames[t0.month - 1]} ${t0.year}' : f.$3;
     final i = _scrub;
@@ -85,7 +129,7 @@ class _ValueHistoryState extends State<ValueHistory> {
                 child: Semantics(
                   label: 'Portfolio value $label: from ${eur(v0)} to ${eur(v1)}.',
                   child: TweenAnimationBuilder<double>(
-                    key: ValueKey(f.$1),
+                    key: ValueKey('${f.$1}/${widget.only?.map((k) => k.name).join(',')}'),
                     tween: Tween(begin: 0, end: 1),
                     duration: Duration(milliseconds: skipEntrance(context) ? 0 : 500),
                     curve: Curves.easeOutCubic,
@@ -108,6 +152,49 @@ class _ValueHistoryState extends State<ValueHistory> {
                 onChanged: (n) => setState(() => _frame = frames[n].$1),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  /// Room for the line while it is built, or a way to ask again when it could not be.
+  Widget _waiting(List<(String, String, String)> frames, (String, String, String) f) {
+    final failed = _failed.contains(f.$1);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: SizedBox(
+              height: 20,
+              child: failed
+                  ? GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => setState(() {
+                        _failed.remove(f.$1);
+                        _build(f.$1);
+                      }),
+                      child: Text.rich(TextSpan(children: [
+                        TextSpan(text: 'The chart did not load.  ', style: sans(14, color: C.ink2)),
+                        TextSpan(text: 'Try again', style: sans(14, weight: FontWeight.w600, color: C.navy)),
+                      ])),
+                    )
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const SizedBox(height: 150),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Segments(
+              labels: [for (final x in frames) x.$2],
+              index: frames.indexOf(f),
+              onChanged: (n) => setState(() => _frame = frames[n].$1),
+            ),
+          ),
         ],
       ),
     );

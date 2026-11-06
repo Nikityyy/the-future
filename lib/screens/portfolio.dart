@@ -37,19 +37,25 @@ class PortfolioPage extends StatelessWidget {
               LargeTitle(
                 'Portfolio',
                 trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                  if (state.mode == Mode.demo) const _Tag('Demo') else if (state.refreshing) const Spinner(),
+                  if (state.mode == Mode.demo) const _Tag('Demo') else if (state.refreshing && !state.pulling) const Spinner(),
                   const SizedBox(width: 10),
                   EyeButton(state),
                 ]),
               ),
               CupertinoSliverRefreshControl(
+                // A short pull is enough, as on iPhone: the list rubber-bands, so a pull
+                // that feels long to the finger is only about this far.
+                refreshTriggerPullDistance: 70,
+                refreshIndicatorExtent: 50,
                 onRefresh: () async {
                   Haptics.confirm();
-                  if (state.mode == Mode.live) {
-                    await state.refresh();
-                  } else {
-                    await Future<void>.delayed(const Duration(milliseconds: 700));
-                  }
+                  // The pull has its own spinner; the one by the title is for refreshes you did not ask for.
+                  state.pulling = true;
+                  // Never faster than a blink, so you see that it looked.
+                  final blink = Future<void>.delayed(const Duration(milliseconds: 800));
+                  if (state.mode == Mode.live) await state.refresh();
+                  await blink;
+                  state.pulling = false;
                 },
                 builder: (context, mode, pulled, trigger, indicator) => Center(child: Opacity(opacity: (pulled / trigger).clamp(0.0, 1.0), child: const Spinner())),
               ),
@@ -73,7 +79,7 @@ class PortfolioPage extends StatelessWidget {
                       if (state.mode == Mode.live) ...[
                         const SizedBox(height: 6),
                         Text(
-                          state.error ?? 'Updated ${ago(s.generatedAt)}. Pull down to check for newer.',
+                          state.error ?? (state.pricedAt == null ? 'Updated ${ago(s.generatedAt)}. Pull down to refresh.' : 'Prices ${ago(state.pricedAt!)} · holdings ${ago(s.generatedAt)}'),
                           style: sans(12.5, color: state.error == null ? C.ink3 : C.loss),
                         ),
                       ],
@@ -81,8 +87,8 @@ class PortfolioPage extends StatelessWidget {
                   ),
                 ),
               ),
-              // Bitpanda's history is the whole portfolio, so it only shows unfiltered.
-              if (state.filter.isEmpty) SliverToBoxAdapter(child: ValueHistory(s)),
+              // Bitpanda's history is the whole portfolio; for one kind the line is built from its prices.
+              SliverToBoxAdapter(child: ValueHistory(s, only: state.filter.isEmpty ? null : state.active)),
               SliverToBoxAdapter(child: _Allocation(s, state.active)),
               for (final k in Kind.values)
                 if (state.active.contains(k) && s.holdings.any((h) => h.kind == k))

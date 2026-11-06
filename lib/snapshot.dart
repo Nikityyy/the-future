@@ -37,6 +37,9 @@ class Holding {
 
   double get gain => value - invested;
   double get gainPercent => invested > 0 ? gain / invested * 100 : 0;
+
+  /// The same holding worth [price] a unit.
+  Holding at(double price) => Holding(name: name, symbol: symbol, kind: kind, amount: amount, value: amount * price, invested: invested, pid: pid);
 }
 
 /// One transaction as Bitpanda booked it. [price], [value] and [fee] are
@@ -110,12 +113,13 @@ class Snapshot {
   /// six_month, year and all. Empty for snapshots synced before it existed.
   final Map<String, List<(DateTime, double)>> history;
 
-  /// Money put in minus money taken out between two moments, from the trades.
-  double netAddedBetween(DateTime from, DateTime to) {
+  /// Money put in minus money taken out between two moments, from the trades,
+  /// for just [kinds] when given.
+  double netAddedBetween(DateTime from, DateTime to, {Set<Kind>? kinds}) {
     var sum = 0.0;
     for (final t in trades) {
       final d = DateTime.tryParse(t.date);
-      if (d == null || t.value == null || d.isBefore(from) || d.isAfter(to)) continue;
+      if (d == null || t.value == null || d.isBefore(from) || d.isAfter(to) || (kinds != null && !kinds.contains(t.kind))) continue;
       sum += t.side == 'sell' ? -t.value! : t.side == 'buy' ? t.value! : 0;
     }
     return sum;
@@ -124,13 +128,13 @@ class Snapshot {
   /// Money added between two moments, each amount weighted by the share of
   /// the period it was invested (the Modified Dietz weights): bought on the
   /// first day counts in full, bought on the last day not at all.
-  double weightedAddedBetween(DateTime from, DateTime to) {
+  double weightedAddedBetween(DateTime from, DateTime to, {Set<Kind>? kinds}) {
     final span = to.difference(from).inSeconds;
     if (span <= 0) return 0;
     var sum = 0.0;
     for (final t in trades) {
       final d = DateTime.tryParse(t.date);
-      if (d == null || t.value == null || d.isBefore(from) || d.isAfter(to)) continue;
+      if (d == null || t.value == null || d.isBefore(from) || d.isAfter(to) || (kinds != null && !kinds.contains(t.kind))) continue;
       final w = to.difference(d).inSeconds / span;
       sum += w * (t.side == 'sell' ? -t.value! : t.side == 'buy' ? t.value! : 0);
     }
@@ -148,6 +152,29 @@ class Snapshot {
     ]..sort();
     return days.isEmpty ? null : days[days.length ~/ 2];
   }
+
+  /// How many units of [h] you held at [t]: what you hold now, undone by the
+  /// trades since. Anchored on today's amount, so a missing early trade does
+  /// not shift the present.
+  double unitsAt(Holding h, DateTime t) {
+    var units = h.amount;
+    for (final x in trades) {
+      if (x.symbol != h.symbol || (h.symbol.isEmpty && x.name != h.name)) continue;
+      final d = DateTime.tryParse(x.date);
+      if (d == null || !d.isAfter(t)) continue;
+      units -= switch (x.side) { 'buy' || 'in' => x.amount, 'sell' || 'out' => -x.amount, _ => 0 };
+    }
+    return units < 0 ? 0 : units;
+  }
+
+  /// The same snapshot with the holdings at today's prices ([prices] is one per holding, null where unknown).
+  Snapshot repriced(List<double?> prices) => Snapshot(
+        generatedAt: generatedAt,
+        holdings: [for (final (i, h) in holdings.indexed) prices[i] == null ? h : h.at(prices[i]!)],
+        monthly: monthly,
+        trades: trades,
+        history: history,
+      );
 
   double get value => holdings.fold(0, (a, h) => a + h.value);
   double get invested => holdings.fold(0, (a, h) => a + h.invested);

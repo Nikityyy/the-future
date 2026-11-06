@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'demo.dart';
 import 'format.dart' as fmt;
 import 'platform/bio.dart';
+import 'platform/web_glue.dart' show checkForAppUpdate;
+import 'prices.dart' show latestPrice;
 import 'projection.dart';
 import 'snapshot.dart';
 import 'vault.dart';
@@ -37,7 +39,13 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   bool locked = false;
   Snapshot? snapshot;
   bool refreshing = false;
+
+  /// True while a pull down is refreshing, which has its own spinner.
+  bool pulling = false;
   DateTime? checkedAt;
+
+  /// When the prices on screen were read from Bitpanda; null until then.
+  DateTime? pricedAt;
   String? error;
   String? _passphrase;
   DateTime? _hiddenAt;
@@ -262,6 +270,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     if (mode != Mode.live || locked) return;
     locked = true;
     snapshot = null;
+    pricedAt = null;
     _passphrase = null;
     notifyListeners();
   }
@@ -271,12 +280,17 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     refreshing = true;
     error = null;
     notifyListeners();
+    checkForAppUpdate();
     try {
       final sealed = await _fetchSealed();
-      // The same file as the one already open: nothing to decrypt or redraw.
+      // The same file as the one already open: nothing to decrypt.
       final same = snapshot != null && _prefs.getString('cache') == jsonEncode(sealed);
-      if (!same) snapshot = Snapshot.fromJson(jsonDecode(await open(sealed, _passphrase!)) as Map<String, dynamic>);
+      final fresh = same ? snapshot! : Snapshot.fromJson(jsonDecode(await open(sealed, _passphrase!)) as Map<String, dynamic>);
       await _prefs.setString('cache', jsonEncode(sealed));
+      // The snapshot is up to three hours old; the prices are read again now.
+      final live = await Future.wait([for (final h in fresh.holdings) latestPrice(h)]);
+      snapshot = fresh.repriced(live);
+      if (live.any((p) => p != null)) pricedAt = DateTime.now();
       checkedAt = DateTime.now();
     } on SnapshotMissing {
       error = 'No snapshot published yet. Run the sync workflow on GitHub.';
@@ -293,6 +307,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     await _prefs.clear();
     mode = Mode.none;
     snapshot = null;
+    pricedAt = null;
     _passphrase = null;
     locked = false;
     error = null;

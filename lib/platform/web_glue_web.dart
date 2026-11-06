@@ -8,6 +8,9 @@ external JSString _safeArea();
 @JS('futureHideSplash')
 external void _hideSplash();
 
+@JS('futureCheckUpdate')
+external void _checkUpdate();
+
 @JS('futureSaveFile')
 external void _saveFile(JSString name, JSString text);
 
@@ -24,6 +27,12 @@ EdgeInsets safeArea() {
   } catch (_) {
     return EdgeInsets.zero;
   }
+}
+
+void checkForAppUpdate() {
+  try {
+    _checkUpdate();
+  } catch (_) {}
 }
 
 void hideSplash() {

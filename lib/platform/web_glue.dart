@@ -8,5 +8,8 @@ EdgeInsets browserSafeArea() => platform.safeArea();
 /// Fades out the loading screen of web/index.html.
 void hideSplash() => platform.hideSplash();
 
+/// Asks the browser whether a newer version of the app is out.
+void checkForAppUpdate() => platform.checkForAppUpdate();
+
 /// Hands a text file to the share sheet, or downloads it.
 void saveFile(String name, String text) => platform.saveFile(name, text);

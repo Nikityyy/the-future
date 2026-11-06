@@ -66,3 +66,62 @@ Future<List<(DateTime, double)>> _load(String pid, String period) async {
   }
   return out..sort((x, y) => x.$1.compareTo(y.$1));
 }
+
+/// The price right now, from Bitpanda, never from the session cache; null
+/// when it cannot be reached or looks unlike the price at the last sync
+/// (a different unit, say). A fund before its market opens has no day yet:
+/// then its last close, which the hourly week has.
+Future<double?> latestPrice(Holding h) async {
+  final pid = h.pid;
+  if (pid == null || pid == 'demo' || h.amount <= 0) return null;
+  try {
+    var pts = await _load(pid, 'day');
+    if (pts.isEmpty) pts = await _load(pid, 'week');
+    if (pts.isEmpty) return null;
+    final price = pts.last.$2, before = h.value / h.amount;
+    return price > 0 && (price / before - 1).abs() < 0.5 ? price : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/// What [kinds] of your holdings together were worth at each moment of
+/// [grid]: the units you held then times the price then, summed. Bitpanda's
+/// own history is only for the whole portfolio, so this is how a single kind
+/// gets a line. A holding whose prices cannot be had stays at its price from
+/// the last sync, so one odd coin does not take the whole line down.
+Future<List<(DateTime, double)>> kindValues(Snapshot s, Set<Kind> kinds, String frame, List<DateTime> grid) async {
+  final period = frame == 'all' ? 'five-years' : frame;
+  final held = [for (final h in s.holdings) if (kinds.contains(h.kind)) h];
+  final series = await Future.wait([
+    for (final h in held)
+      prices(h, period).then<List<(DateTime, double)>>((p) => p, onError: (Object _) => const <(DateTime, double)>[]),
+  ]);
+  return valueSeries(grid, [
+    for (final (i, h) in held.indexed)
+      (units: (DateTime t) => s.unitsAt(h, t), prices: series[i], fallback: h.amount > 0 ? h.value / h.amount : 0.0),
+  ]);
+}
+
+/// The sum over [parts] of units times price at every moment of [grid]. A
+/// price holds until the next one; before the first it is the first.
+List<(DateTime, double)> valueSeries(List<DateTime> grid, List<({double Function(DateTime) units, List<(DateTime, double)> prices, double fallback})> parts) {
+  final next = List.filled(parts.length, 0);
+  return [
+    for (final t in grid)
+      (t, () {
+        var sum = 0.0;
+        for (final (i, p) in parts.indexed) {
+          var price = p.fallback;
+          if (p.prices.isNotEmpty) {
+            while (next[i] + 1 < p.prices.length && !p.prices[next[i] + 1].$1.isAfter(t)) {
+              next[i]++;
+            }
+            price = p.prices[next[i]].$2;
+          }
+          sum += p.units(t) * price;
+        }
+        return sum;
+      }()),
+  ];
+}
