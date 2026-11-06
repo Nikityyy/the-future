@@ -4,6 +4,19 @@ import 'version.dart';
 
 const _kindName = {Kind.fund: 'Funds and stocks', Kind.crypto: 'Crypto', Kind.metal: 'Metals'};
 
+/// What a booking's type means in plain words, for the transactions table.
+const _meaning = {
+  'buy': 'Bought with euros',
+  'sell': 'Sold for euros',
+  'reward': 'Free reward (staking or similar)',
+  'onetime_reward': 'One-off free reward',
+  'stake': 'Into staking, no money',
+  'unstake': 'Out of staking, no money',
+  'transfer': 'Internal move, no money',
+  'stock_exchange_reserve': 'Reserved at the exchange, no money',
+  'merger_crypto': 'Swapped into another token, no money',
+};
+
 String _n(double v, [int digits = 2]) => v.toStringAsFixed(digits);
 String _opt(double? v, [int digits = 2]) => v == null ? '' : _n(v, digits);
 String _units(double v) => v.toStringAsFixed(v.abs() >= 100 ? 2 : 8).replaceFirst(RegExp(r'\.?0+$'), '');
@@ -29,17 +42,21 @@ String exportMarkdown(AppState state, DateTime now) {
   line('# Portfolio export');
   line();
   line('- Exported: ${now.toUtc().toIso8601String()} by The Future ${AppVersion.label}');
-  line('- Portfolio data as of: ${s.generatedAt.toUtc().toIso8601String()} (the last Bitpanda sync)');
+  line('- Holdings and transactions as of: ${s.generatedAt.toUtc().toIso8601String()} (the last Bitpanda sync)');
+  final priced = state.pricedAt;
+  line(priced == null
+      ? '- Prices as of: the same sync'
+      : '- Prices as of: ${priced.toUtc().toIso8601String()} (read live from the public Bitpanda price charts; every Value below uses them)');
   line('- Source: ${demo ? 'MADE-UP DEMO NUMBERS, not a real portfolio' : 'Bitpanda account, read through the Bitpanda public API with a read-only key'}');
   line('- Currency: EUR. Numbers use a dot for decimals and no thousands separators.');
   line();
   line('## How to read this file');
   line();
-  line('- **Value** is what a holding was worth in EUR at the sync time above.');
+  line('- **Value** is what a holding is worth in EUR at the prices time above: units times price.');
   line('- **Invested** is Bitpanda\'s own figure for what was paid for the units still held (sold units no longer count).');
   line('- **Kinds**: "Funds and stocks" covers ETFs, stocks and ETCs; "Crypto" covers coins and tokens; "Metals" covers gold, silver and other metals. Cash balances are left out.');
-  line('- **Transactions** list every booking in a non-cash asset, oldest first. `buy`/`sell` are trades; `in`/`out` are transfers, rewards, staking, airdrops and similar movements without a trade price. For trades, *Price* is the market rate per unit, *Value* is the EUR actually paid or received with fees included, and *Fee* is the difference between the two.');
-  line('- **Money added per month** is net: buys count plus, sells count minus.');
+  line('- **Transactions** list every booking in a non-cash asset, oldest first. `buy`/`sell` are trades; `in`/`out` are transfers, rewards, staking, airdrops and similar movements without a trade price. For trades, *Price* is the market rate per unit, *Value* is the EUR actually paid or received with fees included, and *Fee* is the difference between the two. Rows without a price and value moved no money. *Meaning* says what each booking is in plain words. Staking, unstaking, transfers and mergers show up as an `out` row and an `in` row of the same units: that is one internal move, not a sale and a purchase.');
+  line('- **Money added per month** is net: the *Value* of buys counts plus, of sells minus. Months without a buy or sell are left out (they are zero).');
   line();
 
   final value = s.value, invested = s.invested;
@@ -82,10 +99,10 @@ String exportMarkdown(AppState state, DateTime now) {
         'Bought for ${_n(bought)} €, sold for ${_n(sold)} €, ${_n(fees)} € in fees on trades.');
     line();
     table(
-      ['Date', 'Asset', 'Symbol', 'Kind', 'Side', 'Type', 'Units', 'Price €', 'Value €', 'Fee €'],
+      ['Date', 'Asset', 'Symbol', 'Kind', 'Side', 'Type', 'Units', 'Price €', 'Value €', 'Fee €', 'Meaning'],
       [
         for (final t in s.trades)
-          [t.date.replaceFirst('T', ' ').split('.').first.replaceAll('Z', ''), t.name, t.symbol, _kindName[t.kind]!, t.side, t.type, _units(t.amount), _opt(t.price, 4), _opt(t.value), _opt(t.fee)],
+          [t.date.replaceFirst('T', ' ').split('.').first.replaceAll('Z', ''), t.name, t.symbol, _kindName[t.kind]!, t.side, t.type, _units(t.amount), _opt(t.price, 4), _opt(t.value), _opt(t.fee), _meaning[t.type.toLowerCase()] ?? ''],
       ],
     );
   }

@@ -47,6 +47,20 @@ test('sums net buys per month and kind', () => {
   ]);
 });
 
+test('the cash side of a trade is not money added', () => {
+  const trade = {
+    operation_type: 'TRADE',
+    transactions: [
+      { asset_id: 'btc', credited_at: '2026-08-05T08:00:00Z', flow: 'INCOMING', asset_amount: amount('0.001'), trade: { rate: '60000' } },
+      // The euros leaving, booked without an asset and with the coin's rate.
+      { credited_at: '2026-08-05T08:00:00Z', flow: 'OUTGOING', asset_amount: amount('60'), trade: { rate: '60000' } },
+    ],
+  };
+  const s = buildSnapshot({ portfolio, assets, operations: [trade], now: new Date('2026-10-27') });
+  assert.deepEqual(s.monthly, [{ month: '2026-08', crypto: 60, fund: 0, metal: 0 }]);
+  assert.equal(s.trades.length, 1);
+});
+
 test('lists every non-cash transaction, oldest first, with its euro value', () => {
   const s = buildSnapshot({ portfolio, assets, operations, now: new Date('2026-10-27') });
   assert.equal(s.trades.length, 4);

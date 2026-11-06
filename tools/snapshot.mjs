@@ -41,23 +41,21 @@ export function holdingsFrom(portfolio, assets) {
     .sort((x, y) => y.value - x.value);
 }
 
-/** Net money put in per month and kind: buys count plus, sells minus. */
+/**
+ * Net money put in per month and kind: buys count plus, sells minus. Built from
+ * the same list as the export's transactions, so the two always agree. (A trade
+ * also books the euros on the cash side, a leg with no asset: counted on its
+ * own it is multiplied by the coin's price and turns into millions.)
+ */
 export function monthlyFrom(operations, assets, now = new Date()) {
-  const byId = new Map(assets.map((a) => [a.id, a]));
   const months = new Map();
-  for (const op of operations) {
-    for (const tx of op.transactions ?? []) {
-      if (!tx.trade) continue;
-      const kind = kindOf(byId.get(tx.asset_id));
-      if (kind === 'cash') continue;
-      const price = num(tx.trade.rate_with_fee) || num(tx.trade.rate);
-      const eur = num(tx.asset_amount) * price * (tx.flow === 'OUTGOING' ? -1 : 1);
-      const month = String(tx.credited_at ?? '').slice(0, 7);
-      if (!/^\d{4}-\d{2}$/.test(month)) continue;
-      const row = months.get(month) ?? { month, crypto: 0, fund: 0, metal: 0 };
-      row[kind] += eur;
-      months.set(month, row);
-    }
+  for (const t of tradesFrom(operations, assets)) {
+    if (t.side !== 'buy' && t.side !== 'sell') continue;
+    const month = String(t.date ?? '').slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(month)) continue;
+    const row = months.get(month) ?? { month, crypto: 0, fund: 0, metal: 0 };
+    row[t.kind] += t.side === 'sell' ? -t.value : t.value;
+    months.set(month, row);
   }
   const floor = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - MONTHS, 1)).toISOString().slice(0, 7);
   return [...months.values()]

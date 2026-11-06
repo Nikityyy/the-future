@@ -141,4 +141,19 @@ void main() {
     );
     expect(s.buyDay, 3);
   });
+
+  test('every table in the export has as many cells in each row as in its header', () async {
+    final s = await demo();
+    final lines = exportMarkdown(s, DateTime.utc(2026, 11, 6)).split('\n');
+    var tables = 0;
+    for (var i = 0; i < lines.length; i++) {
+      if (!lines[i].startsWith('| ') || (i > 0 && lines[i - 1].startsWith('|'))) continue;
+      tables++;
+      final cells = '|'.allMatches(lines[i]).length;
+      for (var j = i; j < lines.length && lines[j].startsWith('|'); j++) {
+        expect('|'.allMatches(lines[j]).length, cells, reason: lines[j]);
+      }
+    }
+    expect(tables, 6);
+  });
 }
