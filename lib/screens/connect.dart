@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter/services.dart' show Clipboard;
 import 'package:url_launcher/url_launcher.dart';
 

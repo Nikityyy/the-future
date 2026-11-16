@@ -18,6 +18,7 @@ dependencies:
   shared_preferences: ^2.3.2
   url_launcher: ^6.3.1
   liquid_glass_widgets: ^1.15.1
+  cupertino_ui: 1.0.0
 
 dev_dependencies:
   flutter_test:

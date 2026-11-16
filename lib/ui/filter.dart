@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:cupertino_ui/cupertino_ui.dart' show CupertinoIcons;
 import 'package:flutter/widgets.dart';
 
 import '../platform/haptics.dart';

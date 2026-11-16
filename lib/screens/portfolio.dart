@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart' show CupertinoSliverRefreshControl;
+import 'package:cupertino_ui/cupertino_ui.dart' show CupertinoSliverRefreshControl;
 import 'package:flutter/widgets.dart';
 
 import '../format.dart';
