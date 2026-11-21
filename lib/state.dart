@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'demo.dart';
 import 'format.dart' as fmt;
 import 'platform/bio.dart';
+import 'platform/device_key.dart';
 import 'platform/web_glue.dart' show checkForAppUpdate;
 import 'prices.dart' show latestPrice;
 import 'projection.dart';
@@ -215,10 +216,12 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> connect(String passphrase, String pin) async {
     final sealed = await _fetchSealed();
     final snap = Snapshot.fromJson(jsonDecode(await open(sealed, passphrase)) as Map<String, dynamic>);
-    await _prefs.setString('vault', jsonEncode(await seal(passphrase, pin)));
+    await _prefs.setString('vault', await _sealUnderPin(passphrase, pin));
+    await _prefs.remove('pinFails');
     await _prefs.setString('cache', jsonEncode(sealed));
     await _prefs.setString('mode', 'live');
     mode = Mode.live;
+    pinErased = false;
     _passphrase = passphrase;
     snapshot = snap;
     locked = false;
@@ -228,14 +231,65 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   /// Checks the passphrase against the published snapshot before asking for a PIN.
   Future<void> checkPassphrase(String passphrase) async => open(await _fetchSealed(), passphrase);
 
+  /// Wrong PINs allowed before this phone forgets the PIN, as on an iPhone.
+  static const pinTries = 10;
+
+  /// Wrong PINs left; counted across reloads, so starting over does not reset it.
+  int get pinTriesLeft => pinTries - (_prefs.getInt('pinFails') ?? 0);
+
+  /// True once ten wrong PINs, or a lost device key, erased the keys on this
+  /// phone; the welcome screen says why.
+  bool pinErased = false;
+
+  /// The passphrase sealed under [pin], then once more under this browser's
+  /// own key (see web/devicekey.js): a copy of the storage then cannot be
+  /// tried against all million PINs elsewhere, and here the tries are counted.
+  /// Where the browser keeps no keys, under the PIN alone.
+  Future<String> _sealUnderPin(String passphrase, String pin) async {
+    final inner = jsonEncode(await seal(passphrase, pin));
+    final outer = await DeviceKey.wrap(inner);
+    return outer == null ? inner : jsonEncode({'device': outer});
+  }
+
   Future<bool> unlock(String pin) async {
-    try {
-      _passphrase = await open(jsonDecode(_prefs.getString('vault')!) as Map<String, dynamic>, pin);
-    } on WrongSecret {
+    final stored = jsonDecode(_prefs.getString('vault')!) as Map<String, dynamic>;
+    final device = stored['device'] as String?;
+    final inner = device == null ? stored : switch (await DeviceKey.unwrap(device)) { final t? => jsonDecode(t) as Map<String, dynamic>, null => null };
+    // The browser lost its key (site data cleared in part): the vault can never open.
+    if (inner == null) {
+      await _eraseKeys();
       return false;
     }
+    try {
+      _passphrase = await open(inner, pin);
+    } on WrongSecret {
+      final fails = (_prefs.getInt('pinFails') ?? 0) + 1;
+      await _prefs.setInt('pinFails', fails);
+      if (fails >= pinTries) await _eraseKeys();
+      notifyListeners();
+      return false;
+    }
+    await _prefs.remove('pinFails');
+    // A vault from before the device key gets it now.
+    if (device == null) await _prefs.setString('vault', await _sealUnderPin(_passphrase!, pin));
     await _finishUnlock();
     return true;
+  }
+
+  /// Forgets everything that opens the portfolio on this phone: the PIN and
+  /// face vaults, the sealed copy and the device key. The plan stays, so
+  /// connecting again with the passphrase picks up where it was.
+  Future<void> _eraseKeys() async {
+    for (final k in ['vault', 'bio', 'cache', 'pinFails', 'mode']) {
+      await _prefs.remove(k);
+    }
+    await DeviceKey.erase();
+    mode = Mode.none;
+    snapshot = null;
+    _passphrase = null;
+    locked = false;
+    pinErased = true;
+    notifyListeners();
   }
 
   // Face ID, Touch ID or fingerprint: the passkey's secret seals the passphrase a second time.
@@ -277,6 +331,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     } catch (_) {
       return false;
     }
+    await _prefs.remove('pinFails');
     await _finishUnlock();
     return true;
   }
@@ -329,6 +384,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> disconnect() async {
     await _prefs.clear();
+    await DeviceKey.erase();
     mode = Mode.none;
     snapshot = null;
     _passphrase = null;

@@ -1,10 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:the_future/export.dart';
 import 'package:the_future/format.dart';
+import 'package:the_future/platform/device_key.dart';
 import 'package:the_future/projection.dart';
 import 'package:the_future/snapshot.dart';
 import 'package:the_future/state.dart';
+import 'package:the_future/vault.dart';
 
 Future<AppState> demo([Map<String, Object> saved = const {}]) async {
   SharedPreferences.setMockInitialValues({'mode': 'demo', ...saved});
@@ -207,4 +211,64 @@ void main() {
     expect(s.monthlyForGoal(null, const {}), all, reason: 'the export asks for the whole portfolio from any tab');
   });
 
+  group('the PIN', () {
+    // A stand-in for the browser's key: whatever it sealed opens only while it exists.
+    String? key;
+    setUp(() {
+      key = 'k1';
+      DeviceKey.wrap = (t) async => '${key!}:$t';
+      DeviceKey.unwrap = (t) async => key != null && t.startsWith('$key:') ? t.substring(key!.length + 1) : null;
+      DeviceKey.erase = () async => key = null;
+    });
+
+    Future<AppState> locked() async {
+      SharedPreferences.setMockInitialValues({
+        'mode': 'live',
+        'vault': jsonEncode(await seal('the passphrase', '123456', iterations: 1000)),
+        'plan': jsonEncode({'years': 30}),
+      });
+      return AppState(await SharedPreferences.getInstance());
+    }
+
+    test('an old vault gets sealed under the device key on the first unlock', timeout: const Timeout(Duration(minutes: 2)), () async {
+      final s = await locked();
+      expect(await s.unlock('123456'), isTrue);
+      final prefs = await SharedPreferences.getInstance();
+      final vault = jsonDecode(prefs.getString('vault')!) as Map<String, dynamic>;
+      expect(vault.keys, ['device'], reason: 'a copy of the storage alone cannot be tried against PINs');
+      s.lock();
+      expect(await s.unlock('123456'), isTrue);
+    });
+
+    test('ten wrong PINs, even across restarts, erase the keys and keep the plan', () async {
+      var s = await locked();
+      for (var i = 0; i < 9; i++) {
+        if (i == 5) s = AppState(await SharedPreferences.getInstance()); // a reload does not reset the count
+        expect(await s.unlock('000000'), isFalse);
+      }
+      expect(s.pinTriesLeft, 1);
+      expect(await s.unlock('000000'), isFalse);
+      final prefs = await SharedPreferences.getInstance();
+      expect((s.mode, s.pinErased, prefs.getString('vault'), key), (Mode.none, true, null, null));
+      expect(AppState(prefs).years, 30, reason: 'the plan stays for when you connect again');
+    });
+
+    test('a right PIN resets the count', () async {
+      final s = await locked();
+      for (var i = 0; i < 4; i++) {
+        await s.unlock('000000');
+      }
+      expect(await s.unlock('123456'), isTrue);
+      expect(s.pinTriesLeft, AppState.pinTries);
+    });
+
+    test('a lost device key erases the vault it sealed', () async {
+      final s = await locked();
+      await s.unlock('123456');
+      s.lock();
+      key = 'another browser';
+      expect(await s.unlock('123456'), isFalse);
+      expect((s.mode, s.pinErased), (Mode.none, true));
+    });
+  });
 }

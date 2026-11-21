@@ -107,7 +107,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             const SizedBox(height: 10),
             Center(child: PillButton('Try it with sample numbers', onTap: widget.state.startDemo)),
             const SizedBox(height: 10),
-            Center(child: Text('Free. No account. Your key stays on GitHub.', style: sans(12.5, color: C.ink2))),
+            if (widget.state.pinErased)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text('This phone forgot its PIN. Connect again with your passphrase; your plan is kept.', style: sans(12.5, color: C.loss, height: 1.4), textAlign: TextAlign.center),
+              )
+            else
+              Center(child: Text('Free. No account. Your key stays on GitHub.', style: sans(12.5, color: C.ink2))),
           ],
         ),
       ),

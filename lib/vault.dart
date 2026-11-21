@@ -16,12 +16,13 @@ Future<SecretKey> _key(String secret, List<int> salt, int iterations) =>
     Pbkdf2(macAlgorithm: Hmac.sha256(), iterations: iterations, bits: 256)
         .deriveKeyFromPassword(password: secret, nonce: salt);
 
-Future<Map<String, dynamic>> seal(String text, String secret) async {
+/// [iterations] is for tests only, which would otherwise wait seconds a seal.
+Future<Map<String, dynamic>> seal(String text, String secret, {int iterations = _iterations}) async {
   final salt = _aes.newNonce();
-  final box = await _aes.encrypt(utf8.encode(text), secretKey: await _key(secret, salt, _iterations));
+  final box = await _aes.encrypt(utf8.encode(text), secretKey: await _key(secret, salt, iterations));
   return {
     'v': 1,
-    'iter': _iterations,
+    'iter': iterations,
     'salt': base64.encode(salt),
     'iv': base64.encode(box.nonce),
     'ct': base64.encode([...box.cipherText, ...box.mac.bytes]),

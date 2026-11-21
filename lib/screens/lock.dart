@@ -204,8 +204,6 @@ class LockScreen extends StatefulWidget {
 }
 
 class _LockScreenState extends State<LockScreen> {
-  int _fails = 0;
-  DateTime? _until;
 
   @override
   void initState() {
@@ -215,19 +213,14 @@ class _LockScreenState extends State<LockScreen> {
   }
 
   Future<bool> _try(String pin) async {
-    final until = _until;
-    if (until != null && DateTime.now().isBefore(until)) return false;
-    if (await widget.state.unlock(pin)) return true;
-    _fails++;
-    // Slows a guesser down on this device: 5 wrong tries, then 30 seconds each.
-    if (_fails >= 5) _until = DateTime.now().add(const Duration(seconds: 30));
-    setState(() {});
-    return false;
+    final ok = await widget.state.unlock(pin);
+    if (!ok && mounted) setState(() {});
+    return ok;
   }
 
   @override
   Widget build(BuildContext context) {
-    final waiting = _until != null && DateTime.now().isBefore(_until!);
+    final left = widget.state.pinTriesLeft;
     return ColoredBox(
       color: C.ground,
       child: Column(
@@ -237,7 +230,8 @@ class _LockScreenState extends State<LockScreen> {
           Expanded(
             child: PinPad(
               title: 'Enter your PIN',
-              subtitle: waiting ? 'Too many tries. Wait 30 seconds.' : 'Your portfolio is sealed on this phone.',
+              // From the fourth wrong PIN on, say what is at stake.
+              subtitle: left > AppState.pinTries - 3 ? 'Your portfolio is sealed on this phone.' : '$left ${left == 1 ? 'try' : 'tries'} left. Then this phone forgets the PIN and you connect again with your passphrase.',
               onDone: _try,
               onBio: widget.state.hasBio ? widget.state.unlockWithBio : null,
               footer: Pressable(
