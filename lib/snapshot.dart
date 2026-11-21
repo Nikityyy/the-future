@@ -83,19 +83,25 @@ class MonthRow {
 class Snapshot {
   const Snapshot({required this.generatedAt, required this.holdings, required this.monthly, this.trades = const [], this.history = const {}, this.pricedAt});
 
-  factory Snapshot.fromJson(Map<String, dynamic> j) => Snapshot(
+  factory Snapshot.fromJson(Map<String, dynamic> j) {
+    // Snapshots synced before the export existed have no trades.
+    final trades = [for (final t in j['trades'] as List? ?? const []) Trade.fromJson(t as Map<String, dynamic>)];
+    return Snapshot(
         generatedAt: DateTime.parse(j['generatedAt'] as String),
         holdings: [for (final h in j['holdings'] as List) Holding.fromJson(h as Map<String, dynamic>)],
-        monthly: [
-          for (final m in j['monthly'] as List)
-            MonthRow((m as Map<String, dynamic>)['month'] as String, {
-              Kind.fund: (m['fund'] as num).toDouble(),
-              Kind.crypto: (m['crypto'] as num).toDouble(),
-              Kind.metal: (m['metal'] as num).toDouble(),
-            }),
-        ],
-        // Snapshots synced before the export existed have no trades.
-        trades: [for (final t in j['trades'] as List? ?? const []) Trade.fromJson(t as Map<String, dynamic>)],
+        // The sync counts months in UTC and keeps three years; from the
+        // trades they are every month, in this phone's own time.
+        monthly: trades.isNotEmpty
+            ? monthsOf(trades)
+            : [
+                for (final m in j['monthly'] as List)
+                  MonthRow((m as Map<String, dynamic>)['month'] as String, {
+                    Kind.fund: (m['fund'] as num).toDouble(),
+                    Kind.crypto: (m['crypto'] as num).toDouble(),
+                    Kind.metal: (m['metal'] as num).toDouble(),
+                  }),
+              ],
+        trades: trades,
         history: {
           for (final e in (j['history'] as Map<String, dynamic>? ?? const {}).entries)
             e.key: [
@@ -103,6 +109,24 @@ class Snapshot {
             ],
         },
       );
+  }
+
+  /// Net money put in per calendar month in local time and per kind, from
+  /// [trades]: buys count plus, sells minus. Oldest first; months without a
+  /// buy or sell are left out.
+  static List<MonthRow> monthsOf(List<Trade> trades) {
+    final months = <String, Map<Kind, double>>{};
+    for (final t in trades) {
+      final d = DateTime.tryParse(t.date)?.toLocal();
+      if (d == null || t.value == null || (t.side != 'buy' && t.side != 'sell')) continue;
+      final row = months.putIfAbsent(monthKey(d), () => {for (final k in Kind.values) k: 0.0});
+      row[t.kind] = row[t.kind]! + (t.side == 'sell' ? -t.value! : t.value!);
+    }
+    return [for (final k in months.keys.toList()..sort()) MonthRow(k, months[k]!)];
+  }
+
+  /// 2026-09 for any moment in September 2026.
+  static String monthKey(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}';
 
   final DateTime generatedAt;
 
@@ -235,12 +259,13 @@ class Snapshot {
     return {kinds.first: 1};
   }
 
-  /// Average net amount added per month over the last six months before the
-  /// snapshot, by kind. A month without a purchase counts as zero.
+  /// Average net amount added per month over the six full months before the
+  /// snapshot's month, in local time, by kind. A month without a purchase
+  /// counts as zero.
   Map<Kind, double> get usualMonthly {
-    final from = DateTime.utc(generatedAt.year, generatedAt.month - 6);
-    final key = '${from.year}-${from.month.toString().padLeft(2, '0')}';
-    final last = '${generatedAt.year}-${generatedAt.month.toString().padLeft(2, '0')}';
+    final at = generatedAt.toLocal();
+    final key = monthKey(DateTime(at.year, at.month - 6));
+    final last = monthKey(at);
     return {
       for (final k in Kind.values)
         k: (monthly.where((m) => m.month.compareTo(key) >= 0 && m.month.compareTo(last) < 0).fold(0.0, (a, m) => a + m.byKind[k]!) / 6)

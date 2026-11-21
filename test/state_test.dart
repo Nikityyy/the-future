@@ -93,6 +93,7 @@ void main() {
     expect(s.snapshot!.trades, isNotEmpty);
     expect(md, contains(s.snapshot!.value.toStringAsFixed(2)), reason: 'hiding amounts on screen must not mask the file');
     expect(md, contains('MADE-UP DEMO NUMBERS'));
+    expect(md, contains('**Check:** nothing was sold'), reason: 'the demo\'s trades cover only part of what it holds');
   });
 
   test('a goal says what monthly amount gets there, and that amount does', () async {
@@ -157,7 +158,32 @@ void main() {
         expect('|'.allMatches(lines[j]).length, cells, reason: lines[j]);
       }
     }
-    expect(tables, 6);
+    expect(tables, 10);
+  });
+
+  test('the export writes local times with their offset, keeps every digit and states the goal', () async {
+    final s = await demo();
+    final old = DateTime.utc(2020, 3, 1, 23, 30);
+    Trade t(String date, double price) => Trade(date: date, symbol: 'SHIB', name: 'Shiba Inu', kind: Kind.crypto, side: 'buy', type: 'TRADE', amount: 1234567.12345678, price: price, value: 12.34);
+    final snap = s.snapshot!;
+    final trades = [t(old.toIso8601String(), 0.00001234), ...snap.trades];
+    s.snapshot = Snapshot(generatedAt: snap.generatedAt, holdings: snap.holdings, monthly: Snapshot.monthsOf(trades), trades: trades);
+    s.setGoal((amount: 100000.0, year: DateTime.now().year + 6));
+    final md = exportMarkdown(s, DateTime.utc(2026, 11, 6));
+    final l = old.toLocal(), o = l.timeZoneOffset;
+    String two(int v) => v.toString().padLeft(2, '0');
+    final when = '${l.year}-${two(l.month)}-${two(l.day)} ${two(l.hour)}:${two(l.minute)}:00 ${o.isNegative ? '-' : '+'}${two(o.inHours.abs())}:${two(o.inMinutes.abs() % 60)}';
+    expect(md, contains('| $when | Shiba Inu |'));
+    expect(md, contains('| 1234567.12345678 | 0.00001234 | 12.34 |'), reason: 'every digit of the units and the price');
+    expect(md, contains('| ${l.year}-${two(l.month)} | 0.00 | 12.34 |'), reason: 'months older than the snapshot\'s three years still count, in local time');
+    expect(md, contains('- Goal: 100000.00 € by the end of ${DateTime.now().year + 6}, for the whole portfolio. Takes '));
+    expect(md, contains('| Shiba Inu | SHIB | Crypto |'), reason: 'a sold-off asset still shows in the all-time table');
+  });
+
+  test('a month is the local calendar month', () {
+    final t = DateTime(2026, 3, 1, 0, 30); // local, just after midnight
+    final rows = Snapshot.monthsOf([Trade(date: t.toUtc().toIso8601String(), symbol: 'X', name: 'X', kind: Kind.fund, side: 'buy', type: 'TRADE', amount: 1, value: 50)]);
+    expect(rows.single.month, '2026-03', reason: 'in Vienna this is still February in UTC');
   });
 
   test('the goal counts only the tab on screen', () async {
