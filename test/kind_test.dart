@@ -94,6 +94,14 @@ void main() {
     expect(benchmarkLine([(day(-30), 90.0), ...pts], index, const []), isEmpty, reason: 'the index starts a month after the line: nothing to compare the start with');
   });
 
+  test('fees add up per kind and per holding, and only on trades', () {
+    Trade fee(String sym, Kind k, double f, DateTime d) => Trade(date: d.toIso8601String(), symbol: sym, name: sym == 'BTC' ? 'Bitcoin' : sym, kind: k, side: 'buy', type: 'TRADE', amount: 1, value: 100, fee: f);
+    final s = snap([fee('BTC', Kind.crypto, 1.49, day(3)), fee('BTC', Kind.crypto, 0.51, day(1)), fee('VWCE', Kind.fund, 0, day(2)), _trade('BTC', Kind.crypto, 'in', 1, 0, day(4))]);
+    expect(s.feesFor(), (fees: 2.0, trades: 3, since: day(1)));
+    expect(s.feesFor(kinds: {Kind.fund}).fees, 0);
+    expect(s.feesFor(only: btc), (fees: 2.0, trades: 2, since: day(1)), reason: 'a transfer in is not a trade');
+  });
+
   test('units over a grid match counting back from today at every moment', () {
     // The plain way, one moment at a time, against random buys, sells and transfers.
     final r = math.Random(7);

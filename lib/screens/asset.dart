@@ -103,6 +103,12 @@ class AssetPage extends StatelessWidget {
                   subtitle: s.pricedAt == null ? 'Per unit, at the last sync' : 'Per unit, as in the value above',
                   trailing: Text(unit(now), style: figures(sans(16))),
                 ),
+                if (s.feesFor(only: h) case (fees: final fees, trades: final n, since: _) when n > 0)
+                  Row2(
+                    title: 'Fees paid',
+                    subtitle: 'On $n ${n == 1 ? 'trade' : 'trades'}',
+                    trailing: Text(eur(fees, cents: true), style: figures(sans(16))),
+                  ),
                 Row2(
                   title: 'Share of your portfolio',
                   trailing: Text('${share.toStringAsFixed(1)}%', style: figures(sans(16))),

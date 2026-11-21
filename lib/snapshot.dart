@@ -169,6 +169,22 @@ class Snapshot {
     return sum;
   }
 
+  /// What all trades in [kinds] (all when null), or in just [only], cost in
+  /// fees as Bitpanda booked them, how many trades that was, and the first.
+  ({double fees, int trades, DateTime? since}) feesFor({Set<Kind>? kinds, Holding? only}) {
+    var fees = 0.0, n = 0;
+    DateTime? since;
+    for (final t in trades) {
+      if ((t.side != 'buy' && t.side != 'sell') || (kinds != null && !kinds.contains(t.kind))) continue;
+      if (only != null && (t.symbol != only.symbol || t.name != only.name)) continue;
+      fees += t.fee ?? 0;
+      n++;
+      final d = DateTime.tryParse(t.date);
+      if (d != null && (since == null || d.isBefore(since))) since = d;
+    }
+    return (fees: fees, trades: n, since: since);
+  }
+
   /// How a value line did from its first point to its last, money added
   /// left out: the gain in euros, the money added, and the return in percent
   /// (Modified Dietz: the gain over what was invested on average during the

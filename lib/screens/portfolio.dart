@@ -98,6 +98,20 @@ class PortfolioPage extends StatelessWidget {
                       children: [for (final h in s.holdings.where((h) => h.kind == k)) _HoldingRow(h, s)],
                     ),
                   ),
+              if (s.feesFor(kinds: state.active) case (fees: final fees, trades: final n, since: final since?) when n > 0)
+                SliverToBoxAdapter(
+                  child: Group(
+                    header: 'FEES',
+                    footer: 'What Bitpanda booked as fees on your buys and sells. A spread built into the price is not in it.',
+                    children: [
+                      Row2(
+                        title: 'Paid in fees',
+                        subtitle: '$n ${n == 1 ? 'trade' : 'trades'} since ${_monthNames[since.toLocal().month - 1]} ${since.toLocal().year}',
+                        trailing: Text(eur(fees, cents: true), style: figures(sans(16, weight: FontWeight.w500))),
+                      ),
+                    ],
+                  ),
+                ),
               if (state.mode == Mode.demo)
                 SliverToBoxAdapter(
                   child: Padding(
@@ -117,6 +131,8 @@ class PortfolioPage extends StatelessWidget {
         },
       );
 }
+
+const _monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 class _Tag extends StatelessWidget {
   const _Tag(this.text);

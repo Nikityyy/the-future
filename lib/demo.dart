@@ -51,9 +51,11 @@ Snapshot demoSnapshot([DateTime? now]) {
               kind: kind,
               side: 'buy',
               type: 'TRADE',
-              amount: eur / price,
+              // Crypto pays Bitpanda's 1.49% on top of the market price; the savings plan for funds is free.
+              amount: eur / price / (kind == Kind.crypto ? 1.0149 : 1),
               price: price,
               value: eur,
+              fee: kind == Kind.crypto ? eur - eur / 1.0149 : null,
             ),
     ],
   );
