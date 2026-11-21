@@ -52,20 +52,23 @@ class AssetPage extends StatelessWidget {
                   const SizedBox(height: 18),
                   CountUp(h.value, style: serif(56, tracking: -1.8)),
                   const SizedBox(height: 8),
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '${signedEur(h.gain)}  (${percent(h.gainPercent)})',
-                          style: figures(sans(15, weight: FontWeight.w500, color: up ? C.greenInk : C.loss)),
-                        ),
-                        TextSpan(
-                          text: '  on ${eur(h.invested)} invested',
-                          style: figures(sans(15, color: C.ink2)),
-                        ),
-                      ],
+                  if (h.invested <= 0)
+                    Text('Nothing paid: a reward or a transfer in', style: sans(15, color: C.ink2))
+                  else
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${signedEur(h.gain)}  (${percent(h.gainPercent)})',
+                            style: figures(sans(15, weight: FontWeight.w500, color: up ? C.greenInk : C.loss)),
+                          ),
+                          TextSpan(
+                            text: '  on ${eur(h.invested)} invested',
+                            style: figures(sans(15, color: C.ink2)),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -87,7 +90,7 @@ class AssetPage extends StatelessWidget {
                 ),
                 Row2(
                   title: 'Price now',
-                  subtitle: 'Per unit, at the last sync',
+                  subtitle: s.pricedAt == null ? 'Per unit, at the last sync' : 'Per unit, as in the value above',
                   trailing: Text(unit(now), style: figures(sans(16))),
                 ),
                 Row2(

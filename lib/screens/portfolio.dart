@@ -139,8 +139,10 @@ class _HoldingRow extends StatelessWidget {
   Widget build(BuildContext context) => Row2(
         title: h.name,
         subtitle: '${amountOf(h.amount)} ${h.symbol}',
-        trailing: Text(eur(h.value), style: figures(sans(16, weight: FontWeight.w500))),
-        subtrailing: Text(percent(h.gainPercent), style: figures(sans(13, color: h.gain >= 0 ? C.greenInk : C.loss))),
+        // Cents below €10, so a few coins from a reward do not read as €0.
+        trailing: Text(eur(h.value, cents: h.value.abs() < 10), style: figures(sans(16, weight: FontWeight.w500))),
+        // Nothing paid (a reward or a transfer in) has no percent to show.
+        subtrailing: h.invested <= 0 ? null : Text(percent(h.gainPercent), style: figures(sans(13, color: h.gain >= 0 ? C.greenInk : C.loss))),
         chevron: true,
         onTap: () => showPage<void>(context, (_) => AssetPage(h, s)),
       );
