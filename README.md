@@ -7,12 +7,12 @@
 
 ## What it does
 
-- **Portfolio.** Total value, what you put in and what it returned, and how the value moved over a day, week, month, six months, a year or all time (Bitpanda's own history; for funds, crypto or metals alone the line is built from their prices and the units you held; the change leaves out money you added). Split into funds and stocks, crypto and metals, with a filter that is remembered. Tap a holding for its price over a day up to five years (straight from Bitpanda's public charts), your average buy price and every transaction in it. An eye hides every amount.
+- **Portfolio.** Total value, what you put in and what it returned, and how the value moved over a day, week, month, six months, a year or all time (Bitpanda's own history; for funds, crypto or metals alone the line is built from their prices and the units you held; the change leaves out money you added). Switch on a comparison with MSCI World: what the same money, put in on the same days, would be worth in Amundi Core MSCI World (Acc), dividends included. Split into funds and stocks, crypto and metals, with a filter that is remembered, and the fees you paid. Tap a holding for its price over a day up to five years (straight from Bitpanda's public charts), your average buy price, its fees and every transaction in it, by year. An eye hides every amount.
 - **Future.** A growth curve with a cautious, an expected and a hopeful case, a ruler for what you add each month, one-time additions ("€2,000 in March") and a yearly raise. The result shows what your account will say and what that is worth in today's money, and when you pass round amounts like €100k.
-- **Goal.** Set an amount and a year: the app says whether your plan gets there, and what monthly amount it takes if not.
-- **Export.** One Markdown file with every holding, every transaction and your plan, enough for a spreadsheet or an AI to analyse.
+- **Goal.** Set an amount and a year: the app says what it takes a month next to what you add, marks the goal on the chart at its year, and plans with that amount in one tap. It counts the tab you are on, so on funds and stocks only your funds and what goes into them count.
+- **Export.** One Markdown file with every holding, every asset over all time, the performance per period and at each month end, every transaction to the last digit with its local time, the money added each month and your plan with a year-by-year projection, enough for a spreadsheet or an AI to analyse.
 - **Starting point from your trades.** The monthly amount starts at your average net buying over the last six months. Change it and everything moves.
-- **Lock.** A six digit PIN, or Face ID, Touch ID or a fingerprint. The app locks itself when you have been away for as long as you choose: always, 2 minutes, 15 minutes or an hour.
+- **Lock.** A six digit PIN, or Face ID, Touch ID or a fingerprint. The app locks itself when you have been away for as long as you choose: always, 2 minutes, 15 minutes or an hour. Ten wrong PINs, even across reloads, erase the keys on that phone; your plan stays, and the passphrase connects it again.
 - Pull to refresh, which reads every price again from Bitpanda (holdings still sync every three hours), bouncing scroll, sheets that push the page back, haptics on iPhone and Android, offline after the first visit.
 
 ## How it stays private
@@ -32,8 +32,8 @@ Bitpanda  <-- read-only key, in a GitHub secret --  GitHub Actions (every 3 hour
 
 - The key has the **Read** scope only: it cannot buy, sell or withdraw.
 - `data.enc` is public, because GitHub Pages is. It is useless without the passphrase, so use a long one (four random words).
-- On your phone the passphrase is sealed under your PIN, and optionally under a passkey that Face ID unlocks (WebAuthn with the PRF extension; iOS 18 or later).
-- No server of its own, no account, no analytics. The only other address the app asks is Bitpanda's public price chart, for the holdings you own and the one you open; no key and nothing about you goes with it.
+- On your phone the passphrase is sealed under your PIN and then under a key the browser keeps and never lets out (a non-extractable WebCrypto key), so a copy of the phone's storage cannot be tried against all million PINs elsewhere. Optionally it is also sealed under a passkey that Face ID unlocks (WebAuthn with the PRF extension; iOS 18 or later).
+- No server of its own, no account, no analytics. The only other address the app asks is Bitpanda's public price chart, for the holdings you own, the one you open and MSCI World when you compare; no key and nothing about you goes with it.
 
 ## Set it up
 
@@ -56,7 +56,7 @@ lib/        the Flutter app
   vault.dart        PBKDF2 and AES-GCM, shared with tools/snapshot.mjs
   state.dart        the plan, the lock, the filter, saved in the browser
   ui/, screens/     the interface
-web/        the page shell: haptics.js (iPhone ticks), biometrics.js (passkey), manifest, icons
+web/        the page shell: haptics.js (iPhone ticks), biometrics.js (passkey), devicekey.js (the browser's own key), manifest, icons
 landing/    the landing page and the 404
 tools/      sync.mjs (reads Bitpanda, seals), snapshot.mjs (the parsing), serve.mjs (local preview)
 tests/      Node tests for the parsing and the sealing
@@ -77,7 +77,7 @@ node tools/serve.mjs     # http://localhost:4173/the-future/  (landing) and /app
 ## Good to know
 
 - The projection is a calculation, not a forecast: the returns are assumptions you can change, taxes and fees are not included, and you can lose money. Not financial advice.
-- The monthly amount is derived from your trades (`rate` times amount, per month). It assumes a EUR account and may differ from your real deposits; the ruler overrides it.
+- The monthly amount is derived from your trades: what your buys cost, fees included, less what your sells brought, per calendar month in your time zone. It assumes a EUR account and may differ from your real deposits; the ruler overrides it.
 - Not affiliated with Bitpanda.
 
 ## Licence
