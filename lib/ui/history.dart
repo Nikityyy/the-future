@@ -57,6 +57,9 @@ class _ValueHistoryState extends State<ValueHistory> {
   final _indexLoading = <String>{};
   final _indexFailed = <String>{};
 
+  /// What the chart last showed, drawn again while the next line is built.
+  _View? _view;
+
   /// Each line's change, worked out once: a finger on the chart rebuilds
   /// every frame, and the change walks every transaction.
   final _changes = Expando<({double gain, double added, double? percent})>();
@@ -135,16 +138,17 @@ class _ValueHistoryState extends State<ValueHistory> {
     List<(DateTime, double)>? line(String frame) => widget.only == null ? _whole[frame] ??= widget.s.historyNow(frame)! : _built[frame];
     if (line(f.$1) != null) _shown = f.$1;
     final shown = frames.firstWhere((x) => x.$1 == _shown, orElse: () => f);
-    final pts = line(shown.$1);
-    if (pts == null) return _waiting(frames, f);
+    final built = line(shown.$1);
+    // A tab's line is built from prices, which lands a frame or more later:
+    // until then the chart before it stays, the periods already showing the
+    // pick, and the new line grows out of the old one.
+    final view = built != null ? _view = _viewOf(shown, built) : (_failed.contains(f.$1) ? null : _view);
+    if (view == null) return _waiting(frames, f);
+    final (:frame, :pts, :gain, :pct, :bench, :benchNote) = view;
     final (t0, v0) = pts.first;
     final v1 = pts.last.$2;
-    final (:gain, added: _, percent: pct) = _change(pts);
     final up = gain >= 0;
-    _loadIndex(shown.$1);
-    final bench = _benchFor(shown.$1, pts);
-    final benchChange = bench == null || bench.length < 2 ? null : _change(bench);
-    final label = shown.$1 == 'all' ? 'since ${_monthNames[t0.month - 1]} ${t0.year}' : shown.$3;
+    final label = frame.$1 == 'all' ? 'since ${_monthNames[t0.month - 1]} ${t0.year}' : frame.$3;
     final i = _scrub;
 
     return Padding(
@@ -166,37 +170,11 @@ class _ValueHistoryState extends State<ValueHistory> {
                   : Text.rich(TextSpan(children: [
                       TextSpan(text: eur(pts[i].$2), style: figures(sans(14, weight: FontWeight.w600))),
                       if (bench != null) TextSpan(text: '  vs ${eur(bench[i].$2)}', style: figures(sans(14, weight: FontWeight.w500, color: _MorphLine.benchColor))),
-                      TextSpan(text: '  ${_when(pts[i].$1, shown.$1)}', style: sans(14, color: C.ink2)),
+                      TextSpan(text: '  ${_when(pts[i].$1, frame.$1)}', style: sans(14, color: C.ink2)),
                     ])),
             ),
           ),
-          if (widget.compare)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
-              child: SizedBox(
-                height: 18,
-                child: Row(
-                  children: [
-                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: _MorphLine.benchColor, shape: BoxShape.circle)),
-                    const SizedBox(width: 7),
-                    Expanded(
-                      child: Text(
-                        benchChange != null
-                            ? 'MSCI World instead: ${signedEur(benchChange.gain)}${benchChange.percent != null ? '  (${percent(benchChange.percent!)})' : ''}'
-                            : _indexFailed.contains(shown.$1)
-                                ? 'MSCI World could not load.'
-                                : switch (_index[shown.$1]) {
-                                    final index? => 'No MSCI World prices before ${_monthNames[index.first.$1.toLocal().month - 1]} ${index.first.$1.toLocal().year}.',
-                                    null => 'Loading MSCI World…',
-                                  },
-                        style: figures(sans(13, color: C.ink2)),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          if (widget.compare) _caption(benchNote),
           const SizedBox(height: 10),
           LayoutBuilder(
             builder: (context, box) {
@@ -231,21 +209,58 @@ class _ValueHistoryState extends State<ValueHistory> {
                 onChanged: (n) => setState(() => _frame = frames[n].$1),
               ),
             ),
-          if (widget.onCompare != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 20, 0),
-              child: Row(
-                children: [
-                  Expanded(child: Text('Compare with MSCI World', style: sans(15))),
-                  Switch2(on: widget.compare, onChanged: widget.onCompare!),
-                ],
-              ),
-            ),
-
+          ?_switch(),
         ],
       ),
     );
   }
+
+  /// Everything the chart shows for [frame]'s line [pts].
+  _View _viewOf((String, String, String) frame, List<(DateTime, double)> pts) {
+    final (:gain, added: _, percent: pct) = _change(pts);
+    _loadIndex(frame.$1);
+    final bench = _benchFor(frame.$1, pts);
+    final c = bench == null || bench.length < 2 ? null : _change(bench);
+    final String note;
+    if (c != null) {
+      note = 'MSCI World instead: ${signedEur(c.gain)}${c.percent != null ? '  (${percent(c.percent!)})' : ''}';
+    } else if (_indexFailed.contains(frame.$1)) {
+      note = 'MSCI World could not load.';
+    } else if (_index[frame.$1] case final index?) {
+      note = 'No MSCI World prices before ${_monthNames[index.first.$1.toLocal().month - 1]} ${index.first.$1.toLocal().year}.';
+    } else {
+      note = 'Loading MSCI World…';
+    }
+    return (frame: frame, pts: pts, gain: gain, pct: pct, bench: bench, benchNote: note);
+  }
+
+  /// The line under the change saying how MSCI World did.
+  Widget _caption(String text) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
+        child: SizedBox(
+          height: 18,
+          child: Row(
+            children: [
+              Container(width: 8, height: 8, decoration: const BoxDecoration(color: _MorphLine.benchColor, shape: BoxShape.circle)),
+              const SizedBox(width: 7),
+              Expanded(child: Text(text, style: figures(sans(13, color: C.ink2)), overflow: TextOverflow.ellipsis)),
+            ],
+          ),
+        ),
+      );
+
+  /// The switch for the comparison, under the periods.
+  Widget? _switch() => widget.onCompare == null
+      ? null
+      : Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 20, 0),
+          child: Row(
+            children: [
+              Expanded(child: Text('Compare with MSCI World', style: sans(15))),
+              Switch2(on: widget.compare, onChanged: widget.onCompare!),
+            ],
+          ),
+        );
 
   /// Says the line for [f] could not be built, and builds it again on a tap.
   Widget _retry((String, String, String) f) => GestureDetector(
@@ -270,6 +285,8 @@ class _ValueHistoryState extends State<ValueHistory> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: SizedBox(height: 20, child: _failed.contains(f.$1) ? _retry(f) : null),
             ),
+            // The same rows as the chart itself, so nothing moves when the line arrives.
+            if (widget.compare) _caption('Loading MSCI World…'),
             const SizedBox(height: 10),
             const SizedBox(height: _MorphLine.height),
             const SizedBox(height: 12),
@@ -281,6 +298,7 @@ class _ValueHistoryState extends State<ValueHistory> {
                 onChanged: (n) => setState(() => _frame = frames[n].$1),
               ),
             ),
+            ?_switch(),
           ],
         ),
       );
@@ -667,3 +685,7 @@ class _Line extends CustomPainter {
   @override
   bool shouldRepaint(_Line old) => !identical(old.unit, unit) || !identical(old.bench, bench) || old.reveal != reveal || old.dot != dot || old.color != color;
 }
+
+/// What the value chart shows: the period, its line and change, and the
+/// comparison line with the words about it.
+typedef _View = ({(String, String, String) frame, List<(DateTime, double)> pts, double gain, double? pct, List<(DateTime, double)>? bench, String benchNote});
