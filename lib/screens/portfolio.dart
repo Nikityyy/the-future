@@ -88,7 +88,7 @@ class PortfolioPage extends StatelessWidget {
                 ),
               ),
               // Bitpanda's history is the whole portfolio; for one kind the line is built from its prices.
-              SliverToBoxAdapter(child: ValueHistory(s, only: state.filter.isEmpty ? null : state.active)),
+              SliverToBoxAdapter(child: ValueHistory(s, only: state.filter.isEmpty ? null : state.active, compare: state.compare, onCompare: state.setCompare)),
               SliverToBoxAdapter(child: _Allocation(s, state.active)),
               for (final k in Kind.values)
                 if (state.active.contains(k) && s.holdings.any((h) => h.kind == k))

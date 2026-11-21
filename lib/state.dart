@@ -45,7 +45,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   DateTime? checkedAt;
 
   /// When the prices on screen were read from Bitpanda; null until then.
-  DateTime? pricedAt;
+  DateTime? get pricedAt => snapshot?.pricedAt;
   String? error;
   String? _passphrase;
   DateTime? _hiddenAt;
@@ -69,6 +69,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Amounts show as dots.
   bool hide = false;
+
+  /// The value chart also draws what the same money would be in MSCI World.
+  bool compare = false;
 
   /// Locks itself once the app was away this long. 0 locks every time.
   int lockMinutes = 15;
@@ -270,7 +273,6 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     if (mode != Mode.live || locked) return;
     locked = true;
     snapshot = null;
-    pricedAt = null;
     _passphrase = null;
     notifyListeners();
   }
@@ -289,8 +291,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       await _prefs.setString('cache', jsonEncode(sealed));
       // The snapshot is up to three hours old; the prices are read again now.
       final live = await Future.wait([for (final h in fresh.holdings) latestPrice(h)]);
-      snapshot = fresh.repriced(live);
-      if (live.any((p) => p != null)) pricedAt = DateTime.now();
+      snapshot = fresh.repriced(live, DateTime.now().toUtc());
       checkedAt = DateTime.now();
     } on SnapshotMissing {
       error = 'No snapshot published yet. Run the sync workflow on GitHub.';
@@ -307,7 +308,6 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     await _prefs.clear();
     mode = Mode.none;
     snapshot = null;
-    pricedAt = null;
     _passphrase = null;
     locked = false;
     error = null;
@@ -315,6 +315,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     oneOffs = [];
     filter = {};
     hide = fmt.hideAmounts = false;
+    compare = false;
     goal = null;
     lockMinutes = 15;
     raisePercent = 0;
@@ -344,6 +345,12 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   void showAllKinds() {
     filter = {};
+    _save();
+    notifyListeners();
+  }
+
+  void setCompare(bool v) {
+    compare = v;
     _save();
     notifyListeners();
   }
@@ -392,6 +399,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       jsonEncode({
         'filter': [for (final k in filter) k.name],
         'hide': hide,
+        'compare': compare,
         'monthlyBy': monthlyBy,
         'years': years,
         'scenario': scenario,
@@ -414,6 +422,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       monthlyBy = {for (final e in (j['monthlyBy'] as Map<String, dynamic>? ?? {}).entries) e.key: (e.value as num).toDouble()};
       filter = {for (final n in (j['filter'] as List? ?? [])) Kind.values.byName(n as String)};
       hide = fmt.hideAmounts = j['hide'] as bool? ?? false;
+      compare = j['compare'] as bool? ?? false;
       years = j['years'] as int? ?? years;
       scenario = j['scenario'] as int? ?? scenario;
       lockMinutes = j['lock'] as int? ?? 15;

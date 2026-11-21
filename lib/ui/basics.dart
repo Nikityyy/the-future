@@ -356,3 +356,43 @@ class _PageBuilderState extends State<PageBuilder> {
   @override
   Widget build(BuildContext context) => widget.builder(context);
 }
+
+class Switch2 extends StatelessWidget {
+  const Switch2({super.key, required this.on, required this.onChanged});
+  final bool on;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        toggled: on,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            Haptics.selection();
+            onChanged(!on);
+          },
+          // The switch is drawn 30 high; the tap area is the full 44.
+          child: Container(
+            height: 44,
+            alignment: Alignment.center,
+            child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            width: 54,
+            height: 30,
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(color: on ? C.green : const Color(0x2916170F), borderRadius: BorderRadius.circular(15)),
+            child: AnimatedAlign(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutBack,
+              alignment: on ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                width: 26,
+                height: 26,
+                decoration: const BoxDecoration(color: C.raised, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Color(0x2616170F), blurRadius: 4, offset: Offset(0, 2))]),
+              ),
+            ),
+          ),
+          ),
+        ),
+      );
+}

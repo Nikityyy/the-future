@@ -8,12 +8,11 @@ import '../platform/haptics.dart';
 import '../platform/web_glue.dart';
 import '../state.dart';
 import '../theme.dart';
-import '../ui/basics.dart' show PageBuilder, Spinner;
+import '../ui/basics.dart' show PageBuilder, Spinner, Switch2;
 import '../ui/chrome.dart';
 import '../ui/lists.dart';
 import '../version.dart';
 import 'connect.dart';
-import 'plan.dart' show Switch2;
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage(this.state, {super.key});

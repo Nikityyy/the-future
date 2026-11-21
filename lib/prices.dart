@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:http/http.dart' as http;
 
@@ -15,6 +16,13 @@ const chartPeriods = [
   ('year', '1Y', 'in the past year'),
   ('five-years', '5Y', 'in the past 5 years'),
 ];
+
+/// What the portfolio is compared with: Amundi Core MSCI World UCITS ETF
+/// (Acc), as Bitpanda charts it in euros. It keeps its dividends in the
+/// fund, so its price is the whole return of MSCI World, less its 0.13% a
+/// year. Bitpanda's chart endpoint knows it by its ISIN; its history there
+/// starts in January 2024.
+const msciWorld = Holding(name: 'MSCI World', symbol: 'MWRE', kind: Kind.fund, amount: 0, value: 0, invested: 0, pid: 'IE000BI8OT95');
 
 final _cache = <String, Future<List<(DateTime, double)>>>{};
 
@@ -56,15 +64,38 @@ Future<List<(DateTime, double)>> _cached(String pid, String period) async {
 Future<List<(DateTime, double)>> _load(String pid, String period) async {
   final res = await http.get(Uri.https('api.bitpanda.com', '/v3/ohlc/$pid/EUR/$period')).timeout(const Duration(seconds: 12));
   if (res.statusCode != 200) throw Exception('HTTP ${res.statusCode}');
-  final data = (jsonDecode(res.body) as Map<String, dynamic>)['data'] as List;
-  final out = <(DateTime, double)>[];
+  return candleLine((jsonDecode(res.body) as Map<String, dynamic>)['data'] as List, DateTime.now().toUtc());
+}
+
+/// The price line in Bitpanda's candles. A candle is stamped with the moment
+/// it opens, and its close is the price when it ends: when the next one
+/// opens, or [now] for the last, which is still going. So the line starts
+/// at the first candle's open and puts each close at its candle's end; at
+/// the stamps, every price would sit one candle early (a whole day on 1Y)
+/// and the change would leave out the first candle.
+List<(DateTime, double)> candleLine(List<dynamic> data, DateTime now) {
+  final candles = <(int, double, double)>[];
   for (final c in data) {
     final a = (c as Map<String, dynamic>)['attributes'] as Map<String, dynamic>;
     final t = int.tryParse('${(a['time'] as Map<String, dynamic>?)?['unix']}');
-    final v = double.tryParse('${a['close']}');
-    if (t != null && v != null) out.add((DateTime.fromMillisecondsSinceEpoch(t * 1000, isUtc: true), v));
+    final (open, close) = (double.tryParse('${a['open']}'), double.tryParse('${a['close']}'));
+    if (t != null && open != null && close != null) candles.add((t, open, close));
   }
-  return out..sort((x, y) => x.$1.compareTo(y.$1));
+  if (candles.isEmpty) return const [];
+  candles.sort((x, y) => x.$1.compareTo(y.$1));
+  // The length of one candle: the shortest step between two. A market
+  // closes overnight, so a longer step is a pause, not a longer candle.
+  var step = 0;
+  for (var i = 1; i < candles.length; i++) {
+    final d = candles[i].$1 - candles[i - 1].$1;
+    if (d > 0 && (step == 0 || d < step)) step = d;
+  }
+  DateTime at(int s) => DateTime.fromMillisecondsSinceEpoch(s * 1000, isUtc: true);
+  final last = now.millisecondsSinceEpoch ~/ 1000;
+  return [
+    (at(candles.first.$1), candles.first.$2),
+    for (final c in candles) (at(step == 0 ? last : math.min(c.$1 + step, last)), c.$3),
+  ];
 }
 
 /// The price right now, from Bitpanda, never from the session cache; null
@@ -99,16 +130,17 @@ Future<List<(DateTime, double)>> kindValues(Snapshot s, Set<Kind> kinds, String 
   ]);
   return valueSeries(grid, [
     for (final (i, h) in held.indexed)
-      (units: (DateTime t) => s.unitsAt(h, t), prices: series[i], fallback: h.amount > 0 ? h.value / h.amount : 0.0),
+      (units: s.unitsOver(h, grid), prices: series[i], fallback: h.amount > 0 ? h.value / h.amount : 0.0),
   ]);
 }
 
 /// The sum over [parts] of units times price at every moment of [grid]. A
 /// price holds until the next one; before the first it is the first.
-List<(DateTime, double)> valueSeries(List<DateTime> grid, List<({double Function(DateTime) units, List<(DateTime, double)> prices, double fallback})> parts) {
+/// [units] holds a part's units at each moment of [grid].
+List<(DateTime, double)> valueSeries(List<DateTime> grid, List<({List<double> units, List<(DateTime, double)> prices, double fallback})> parts) {
   final next = List.filled(parts.length, 0);
   return [
-    for (final t in grid)
+    for (final (g, t) in grid.indexed)
       (t, () {
         var sum = 0.0;
         for (final (i, p) in parts.indexed) {
@@ -119,9 +151,47 @@ List<(DateTime, double)> valueSeries(List<DateTime> grid, List<({double Function
             }
             price = p.prices[next[i]].$2;
           }
-          sum += p.units(t) * price;
+          sum += p.units[g] * price;
         }
         return sum;
       }()),
+  ];
+}
+
+/// What the money in [pts] would have been worth in [index] instead. The
+/// value at the first point buys index units at that moment's price, and
+/// every buy or sell in [kinds] from then on buys or sells index units for
+/// the same euros at its own moment: the same money in at the same times,
+/// only the investment differs. A price holds until the next one. Empty
+/// when [index] starts more than a week after [pts]: there is nothing to
+/// compare the start with.
+List<(DateTime, double)> benchmarkLine(List<(DateTime, double)> pts, List<(DateTime, double)> index, List<Trade> trades, {Set<Kind>? kinds}) {
+  if (pts.isEmpty || index.isEmpty || index.first.$1.isAfter(pts.first.$1.add(const Duration(days: 7)))) return const [];
+  double priceAt(DateTime t) {
+    var lo = 0, hi = index.length - 1;
+    if (index.first.$1.isAfter(t)) return index.first.$2;
+    while (lo < hi) {
+      final m = (lo + hi + 1) >> 1;
+      index[m].$1.isAfter(t) ? hi = m - 1 : lo = m;
+    }
+    return index[lo].$2;
+  }
+
+  final t0 = pts.first.$1;
+  final flows = [
+    for (final t in trades)
+      if ((t.side == 'buy' || t.side == 'sell') && t.value != null && (kinds == null || kinds.contains(t.kind)))
+        if (DateTime.tryParse(t.date) case final d? when !d.isBefore(t0)) (d, t.side == 'sell' ? -t.value! : t.value!),
+  ]..sort((a, b) => a.$1.compareTo(b.$1));
+  var units = pts.first.$2 / priceAt(t0);
+  var next = 0;
+  return [
+    for (final (t, _) in pts)
+      () {
+        for (; next < flows.length && !flows[next].$1.isAfter(t); next++) {
+          units += flows[next].$2 / priceAt(flows[next].$1);
+        }
+        return (t, units * priceAt(t));
+      }(),
   ];
 }

@@ -81,7 +81,7 @@ class MonthRow {
 }
 
 class Snapshot {
-  const Snapshot({required this.generatedAt, required this.holdings, required this.monthly, this.trades = const [], this.history = const {}});
+  const Snapshot({required this.generatedAt, required this.holdings, required this.monthly, this.trades = const [], this.history = const {}, this.pricedAt});
 
   factory Snapshot.fromJson(Map<String, dynamic> j) => Snapshot(
         generatedAt: DateTime.parse(j['generatedAt'] as String),
@@ -105,6 +105,10 @@ class Snapshot {
       );
 
   final DateTime generatedAt;
+
+  /// When the holdings' prices were read live, after the sync; null while
+  /// they are the sync's own.
+  final DateTime? pricedAt;
   final List<Holding> holdings;
   final List<MonthRow> monthly;
   final List<Trade> trades;
@@ -141,6 +145,19 @@ class Snapshot {
     return sum;
   }
 
+  /// How a value line did from its first point to its last, money added
+  /// left out: the gain in euros, the money added, and the return in percent
+  /// (Modified Dietz: the gain over what was invested on average during the
+  /// period), null when nothing was invested. For just [kinds] when given.
+  ({double gain, double added, double? percent}) change(List<(DateTime, double)> pts, {Set<Kind>? kinds}) {
+    final (t0, v0) = pts.first;
+    final (t1, v1) = pts.last;
+    final added = netAddedBetween(t0, t1, kinds: kinds);
+    final gain = v1 - v0 - added;
+    final base = v0 + weightedAddedBetween(t0, t1, kinds: kinds);
+    return (gain: gain, added: added, percent: base > 0 ? gain / base * 100 : null);
+  }
+
   /// The day of the month your money usually goes in: the middle day of your
   /// buys in the half year before the snapshot, or null without any.
   int? get buyDay {
@@ -153,28 +170,48 @@ class Snapshot {
     return days.isEmpty ? null : days[days.length ~/ 2];
   }
 
-  /// How many units of [h] you held at [t]: what you hold now, undone by the
-  /// trades since. Anchored on today's amount, so a missing early trade does
-  /// not shift the present.
-  double unitsAt(Holding h, DateTime t) {
-    var units = h.amount;
-    for (final x in trades) {
-      if (x.symbol != h.symbol || (h.symbol.isEmpty && x.name != h.name)) continue;
-      final d = DateTime.tryParse(x.date);
-      if (d == null || !d.isAfter(t)) continue;
-      units -= switch (x.side) { 'buy' || 'in' => x.amount, 'sell' || 'out' => -x.amount, _ => 0 };
+  /// How many units of [h] you held at each moment of [grid] (oldest
+  /// first): what you hold now, undone by the trades since. Anchored on
+  /// today's amount, so a missing early trade does not shift the present.
+  /// One pass back through the trades, however long the grid.
+  List<double> unitsOver(Holding h, List<DateTime> grid) {
+    final moves = <(DateTime, double)>[
+      for (final x in trades)
+        if (x.symbol == h.symbol && (h.symbol.isNotEmpty || x.name == h.name))
+          if (DateTime.tryParse(x.date) case final d?) (d, switch (x.side) { 'buy' || 'in' => x.amount, 'sell' || 'out' => -x.amount, _ => 0.0 }),
+    ]..sort((a, b) => a.$1.compareTo(b.$1));
+    final out = List<double>.filled(grid.length, 0);
+    var since = 0.0, next = moves.length - 1;
+    for (var i = grid.length - 1; i >= 0; i--) {
+      for (; next >= 0 && moves[next].$1.isAfter(grid[i]); next--) {
+        since += moves[next].$2;
+      }
+      final units = h.amount - since;
+      out[i] = units < 0 ? 0 : units;
     }
-    return units < 0 ? 0 : units;
+    return out;
   }
 
-  /// The same snapshot with the holdings at today's prices ([prices] is one per holding, null where unknown).
-  Snapshot repriced(List<double?> prices) => Snapshot(
+  /// The same snapshot with the holdings at the prices read [at] ([prices]
+  /// is one per holding, null where unknown).
+  Snapshot repriced(List<double?> prices, DateTime at) => Snapshot(
         generatedAt: generatedAt,
         holdings: [for (final (i, h) in holdings.indexed) prices[i] == null ? h : h.at(prices[i]!)],
         monthly: monthly,
         trades: trades,
         history: history,
+        pricedAt: prices.any((p) => p != null) ? at : pricedAt,
       );
+
+  /// The value over [frame], up to the prices on screen: Bitpanda's history
+  /// ends at the sync, so with live prices the line goes on to them, and its
+  /// change matches the total above it.
+  List<(DateTime, double)>? historyNow(String frame) {
+    final pts = history[frame];
+    final at = pricedAt;
+    if (pts == null || pts.isEmpty || at == null || !at.isAfter(pts.last.$1)) return pts;
+    return [...pts, (at, value)];
+  }
 
   double get value => holdings.fold(0, (a, h) => a + h.value);
   double get invested => holdings.fold(0, (a, h) => a + h.invested);
