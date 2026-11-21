@@ -26,6 +26,16 @@ class AssetPage extends StatelessWidget {
       for (final t in s.trades.reversed)
         if (t.symbol == h.symbol && t.name == h.name) t,
     ];
+    // A card per year, newest first, cut every 25 rows; only the first card
+    // of a year says which year it is.
+    final cards = <(String?, List<Trade>)>[];
+    String? year;
+    for (final t in trades) {
+      final y = '${DateTime.tryParse(t.date)?.toLocal().year ?? 'Undated'}';
+      if (y != year || cards.last.$2.length == 25) cards.add((y == year ? null : y, []));
+      year = y;
+      cards.last.$2.add(t);
+    }
     final avg = h.amount > 0 ? h.invested / h.amount : 0.0;
     final now = h.amount > 0 ? h.value / h.amount : 0.0;
     final share = s.value > 0 ? h.value / s.value * 100 : 0.0;
@@ -100,16 +110,24 @@ class AssetPage extends StatelessWidget {
               ],
             ),
           ),
-          SliverToBoxAdapter(
-            child: Group(
-              header: trades.isEmpty ? 'TRANSACTIONS' : 'TRANSACTIONS (${trades.length})',
-              footer: trades.isEmpty ? 'Transactions show up after the next sync from Bitpanda.' : null,
-              children: [
-                if (trades.isEmpty) const Row2(title: 'None yet'),
-                for (final t in trades) _TradeRow(t),
-              ],
+          if (trades.isEmpty)
+            const SliverToBoxAdapter(
+              child: Group(header: 'TRANSACTIONS', footer: 'Transactions show up after the next sync from Bitpanda.', children: [Row2(title: 'None yet')]),
+            )
+          else ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 14),
+                child: Text('TRANSACTIONS (${trades.length})', style: sans(13, weight: FontWeight.w500, color: C.ink2, tracking: 0.1)),
+              ),
             ),
-          ),
+            // Each card is built only as it scrolls into view: years of daily
+            // buys cost nothing until they are reached.
+            SliverList.builder(
+              itemCount: cards.length,
+              itemBuilder: (context, i) => Group(header: cards[i].$1, children: [for (final t in cards[i].$2) _TradeRow(t)]),
+            ),
+          ],
           SliverToBoxAdapter(child: SizedBox(height: 40 + browserSafeArea().bottom)),
         ],
       ),
