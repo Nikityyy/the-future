@@ -85,26 +85,32 @@ class FutureApp extends StatelessWidget {
           primaryColor: C.navy,
           textTheme: CupertinoTextThemeData(textStyle: sans(16)),
         ),
-        // On a computer the app stays a phone-width column in the middle.
-        builder: (context, child) => ColoredBox(
-          color: C.ground,
-          child: Stack(
-            children: [
-              ValueListenableBuilder(
-                valueListenable: _warm,
-                builder: (context, warm, _) {
-                  if (!warm) return const SizedBox();
-                  instantEntrances = true;
-                  return Positioned(left: 0, top: 0, child: Warmup(demo));
-                },
-              ),
-              // Built right after the warm-up: the page's own entrances play as usual.
-              Builder(builder: (_) {
-                instantEntrances = false;
-                return const SizedBox();
-              }),
-              Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 560), child: child)),
-            ],
+        // The app is light only. The glass widgets read Flutter's own
+        // CupertinoTheme, which this cupertino_ui app does not provide, so
+        // they fall back to the phone's setting and turn dark in dark mode.
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(platformBrightness: Brightness.light),
+          child: ColoredBox(
+            color: C.ground,
+            child: Stack(
+              children: [
+                ValueListenableBuilder(
+                  valueListenable: _warm,
+                  builder: (context, warm, _) {
+                    if (!warm) return const SizedBox();
+                    instantEntrances = true;
+                    return Positioned(left: 0, top: 0, child: Warmup(demo));
+                  },
+                ),
+                // Built right after the warm-up: the page's own entrances play as usual.
+                Builder(builder: (_) {
+                  instantEntrances = false;
+                  return const SizedBox();
+                }),
+                // On a computer the app stays a phone-width column in the middle.
+                Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 560), child: child)),
+              ],
+            ),
           ),
         ),
         home: ListenableBuilder(
