@@ -27,8 +27,9 @@ class GrowthChart extends StatefulWidget {
   /// The values are thinned out; each point is this many months apart.
   final int monthsPerPoint;
 
-  /// Drawn as a dashed line when it fits the chart.
-  final double? goal;
+  /// The goal: its amount and how many months from now it is due. Drawn
+  /// as a target at that moment, which the line passes over or under.
+  final ({double amount, int months})? goal;
 
   /// Whether a finger dragged along it reads a month.
   final bool interactive;
@@ -105,6 +106,30 @@ class _GrowthChartState extends State<GrowthChart> with SingleTickerProviderStat
       );
 }
 
+/// The top of the scale and the number of steps up to it. Each step is 1,
+/// 2, 2.5 or 5 times a power of ten, so every line reads as a round amount
+/// (never €62.5K or €188K), and of the step counts that fit, the one whose
+/// top sits closest above [v] wins. A short chart takes fewer steps, so the
+/// labels never touch.
+(double, int) chartScale(double v, {required bool short}) {
+  if (v <= 0) return (1000, short ? 2 : 4);
+  (double, int)? best;
+  for (final n in short ? const [2, 3] : const [3, 4, 5]) {
+    final raw = v * 1.04 / n;
+    final e = math.pow(10, (math.log(raw) / math.ln10).floor()).toDouble();
+    final step = [1.0, 2.0, 2.5, 5.0, 10.0].map((m) => m * e).firstWhere((x) => x >= raw * (1 - 1e-9));
+    if (best == null || step * n < best.$1 - 1e-6) best = (step * n, n);
+  }
+  return best!;
+}
+
+/// €2.5K, €40K, €1.25M: as short as the amount allows, never rounded wrong.
+String shortEur(double v) {
+  String fmt(double x) => x == x.roundToDouble() ? '${x.round()}' : x.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+  if (hideAmounts) return '•••';
+  return v >= 1e6 ? '€${fmt(v / 1e6)}M' : v >= 1000 ? '€${fmt(v / 1000)}K' : '€${v.round()}';
+}
+
 class _Painter extends CustomPainter {
   _Painter({required this.low, required this.mid, required this.high, required this.start, required this.years, required this.progress, required this.scrub, this.monthsPerPoint = 1, this.goal});
 
@@ -118,24 +143,16 @@ class _Painter extends CustomPainter {
   final double progress;
   final int? scrub;
   final int monthsPerPoint;
-  final double? goal;
-
-  static double _niceMax(double v) {
-    if (v <= 0) return 1000;
-    final e = math.pow(10, (math.log(v) / math.ln10).floor()).toDouble();
-    for (final m in [1.0, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) {
-      if (m * e >= v * 1.04) return m * e;
-    }
-    return 10 * e;
-  }
-
-  static String _short(double v) => hideAmounts ? '•••' : v >= 1e6 ? '€${(v / 1e6).toStringAsFixed(v >= 1e7 ? 0 : 1)}M' : v >= 1000 ? '€${(v / 1000).round()}K' : '€${v.round()}';
+  final ({double amount, int months})? goal;
 
   @override
   void paint(Canvas canvas, Size size) {
     final n = mid.length - 1;
-    final yMax = _niceMax(high.reduce(math.max));
+    final g = goal;
+    // A goal within the years shown is kept on the chart.
+    final goalInside = g != null && g.months <= years * 12;
     final plot = Rect.fromLTRB(left, _top, size.width - 14, size.height - _bottom);
+    final (yMax, lines) = chartScale(math.max(high.reduce(math.max), goalInside ? g.amount : 0), short: plot.height < 160);
     double x(int i) => plot.left + plot.width * i / n;
     double y(double v) => plot.bottom - plot.height * (v / yMax).clamp(0, 1);
 
@@ -143,26 +160,44 @@ class _Painter extends CustomPainter {
     final grid = Paint()
       ..color = C.ink.withValues(alpha: 0.12)
       ..strokeWidth = 1;
-    // A short chart gets fewer lines so the labels never touch.
-    final lines = plot.height < 160 ? 2 : 4;
     for (var g = 0; g <= lines; g++) {
       final v = yMax * g / lines;
       final gy = y(v);
       _dotted(canvas, Offset(plot.left, gy), Offset(plot.right, gy), grid);
-      _text(canvas, _short(v), Offset(plot.left - 8, gy), C.ink3, align: 1);
+      _text(canvas, shortEur(v), Offset(plot.left - 8, gy), C.ink3, align: 1);
     }
     _text(canvas, 'Now', Offset(plot.left, plot.bottom + 10), C.ink3, align: 0, below: true);
     _text(canvas, '${start.year + years}', Offset(plot.right, plot.bottom + 10), C.ink3, align: 2, below: true);
 
-    final g = goal;
-    if (g != null && g <= yMax) {
+    // The goal: a dashed line at its amount up to when it is due, and a
+    // ring there. Due after the years shown, the line runs across and says when.
+    if (g != null && g.amount <= yMax) {
       final gp = Paint()
         ..color = C.navy.withValues(alpha: 0.55)
         ..strokeWidth = 1.4;
-      for (var gx = plot.left; gx < plot.right; gx += 9) {
-        canvas.drawLine(Offset(gx, y(g)), Offset(math.min(gx + 5, plot.right), y(g)), gp);
+      final gy = y(g.amount);
+      final end = goalInside ? plot.left + plot.width * g.months / (years * 12) : plot.right;
+      for (var gx = plot.left; gx < end; gx += 9) {
+        canvas.drawLine(Offset(gx, gy), Offset(math.min(gx + 5, end), gy), gp);
       }
-      _text(canvas, 'Goal', Offset(plot.left + 4, y(g) - 9), C.navy, align: 0);
+      final due = DateTime(start.year, start.month + g.months).year;
+      if (goalInside) {
+        for (var dy = gy + 9; dy < plot.bottom; dy += 9) {
+          canvas.drawLine(Offset(end, dy), Offset(end, math.min(dy + 5, plot.bottom)), gp);
+        }
+        canvas.drawCircle(Offset(end, gy), 6, Paint()..color = C.ground);
+        canvas.drawCircle(
+          Offset(end, gy),
+          6,
+          Paint()
+            ..color = C.navy
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2,
+        );
+      }
+      final label = goalInside ? 'Goal $due' : 'Goal in $due';
+      final leftHalf = end - plot.left < plot.width / 2;
+      _text(canvas, label, Offset(leftHalf ? plot.left + 4 : end - (goalInside ? 10 : 0), gy - 12), C.navy, align: leftHalf ? 0 : 2);
     }
 
     final last = (n * progress).floor().clamp(1, n);

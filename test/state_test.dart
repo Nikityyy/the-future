@@ -98,13 +98,16 @@ void main() {
   test('a goal says what monthly amount gets there, and that amount does', () async {
     final s = await demo();
     final year = DateTime.now().year + 10;
-    s.setPlan(goal: (amount: 500000.0, year: year));
+    s.setGoal((amount: 500000.0, year: year));
     final need = s.monthlyForGoal()!;
     expect(need, greaterThan(s.monthly), reason: '€500k in ten years needs more than the demo adds');
-    expect(s.projectionFor(s.scenario, monthlyAmount: need, months: s.goalMonths).end, closeTo(500000, 1));
+    s.setGoal(null);
+    expect(s.monthlyForGoal((amount: 500000.0, year: year)), need, reason: 'a goal being set in the sheet, not yet saved, gives the same answer');
+    s.setGoal((amount: 500000.0, year: year));
+    expect(s.projectionFor(s.scenario, monthlyAmount: need, months: AppState.monthsUntil(year)).end, closeTo(500000, 1));
     s.setPlan(monthly: need + 1);
     expect(s.goalReachedIn(), lessThanOrEqualTo(year));
-    s.setPlan(goal: (amount: 1000.0, year: year));
+    s.setGoal((amount: 1000.0, year: year));
     expect(s.monthlyForGoal(), 0, reason: 'already there');
   });
 
@@ -156,4 +159,26 @@ void main() {
     }
     expect(tables, 6);
   });
+
+  test('the goal counts only the tab on screen', () async {
+    final s = await demo();
+    final year = DateTime.now().year + 10;
+    s.setGoal((amount: 100000.0, year: year));
+    final all = s.monthlyForGoal()!;
+    s.toggleKind(Kind.fund);
+    final funds = s.monthlyForGoal()!;
+    // By hand: start from the funds alone, all new money into funds.
+    final byHand = project(
+      start: {Kind.fund: s.snapshot!.valueOf(Kind.fund)},
+      mix: {Kind.fund: 1},
+      monthly: funds,
+      months: AppState.monthsUntil(year),
+      yearlyReturn: {for (final k in Kind.values) k: s.returns[k]![s.scenario]},
+      addAt: s.addAt,
+    );
+    expect(byHand.end, closeTo(100000, 1), reason: 'on the funds tab, crypto and metals do not count');
+    expect(funds, greaterThan(all), reason: 'without the crypto and metals already held, it takes more');
+    expect(s.monthlyForGoal(null, const {}), all, reason: 'the export asks for the whole portfolio from any tab');
+  });
+
 }

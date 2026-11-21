@@ -10,7 +10,7 @@ import '../ui/basics.dart';
 import '../ui/chrome.dart';
 import '../ui/lists.dart';
 import '../ui/ruler.dart';
-import '../ui/filter.dart' show KindChip, kindNames;
+import '../ui/filter.dart' show KindChip, kindNames, viewName;
 
 class _Stepper extends StatelessWidget {
   const _Stepper({required this.text, required this.onMinus, required this.onPlus});
@@ -196,11 +196,15 @@ class _OneOffsSheetState extends State<OneOffsSheet> {
       );
 }
 
-/// An amount you want to have by the end of a year.
+/// An amount you want to have by the end of a year, and what it takes a
+/// month to get there, worked out as you pick.
 class GoalSheet extends StatefulWidget {
   const GoalSheet(this.state, {super.key});
 
   final AppState state;
+
+  /// Tall enough for everything, with the remove button when there is a goal to remove.
+  static double height(AppState state) => state.goal == null ? 520 : 576;
 
   @override
   State<GoalSheet> createState() => _GoalSheetState();
@@ -211,7 +215,7 @@ class _GoalSheetState extends State<GoalSheet> {
 
   /// Four round amounts just above what you have now.
   late final _picks = () {
-    final v = widget.state.snapshot?.value ?? 0;
+    final v = widget.state.valueIn(widget.state.filter);
     final i = _marks.indexWhere((m) => m >= v * 1.2);
     final from = i < 0 ? _marks.length - 4 : i.clamp(0, _marks.length - 4);
     return _marks.sublist(from, from + 4);
@@ -222,7 +226,7 @@ class _GoalSheetState extends State<GoalSheet> {
 
   /// A round number a good way above today's value.
   double _suggest() {
-    final v = widget.state.snapshot?.value ?? 0;
+    final v = widget.state.valueIn(widget.state.filter);
     return _marks.firstWhere((m) => m >= v * 1.5, orElse: () => _marks.last);
   }
 
@@ -247,7 +251,10 @@ class _GoalSheetState extends State<GoalSheet> {
         const SheetHeader('Your goal', action: 'Cancel'),
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 18),
-          child: Text('What you want to have, and by when.', style: sans(15, color: C.ink2, height: 1.45)),
+          child: Text(
+            widget.state.filter.isEmpty ? 'What you want to have, and by when.' : 'What you want to have, and by when. On this tab only ${viewName(widget.state.filter)} count: what is in it and what you add to it.',
+            style: sans(15, color: C.ink2, height: 1.45),
+          ),
         ),
         Group(
           children: [
@@ -273,11 +280,12 @@ class _GoalSheetState extends State<GoalSheet> {
             Row2(title: 'By the end of', trailing: _Stepper(text: '$_year', onMinus: () => setState(() => _year = (_year - 1).clamp(now + 1, now + 60)), onPlus: () => setState(() => _year = (_year + 1).clamp(now + 1, now + 60)))),
           ],
         ),
+        _Takes(widget.state, (amount: _amount, year: _year)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: AppButton('Save goal', onTap: () {
             Haptics.confirm();
-            widget.state.setPlan(goal: (amount: _amount, year: _year));
+            widget.state.setGoal((amount: _amount, year: _year));
             Navigator.of(context).maybePop();
           }),
         ),
@@ -286,12 +294,41 @@ class _GoalSheetState extends State<GoalSheet> {
             padding: const EdgeInsets.only(top: 12),
             child: Center(
               child: PillButton('Remove goal', onTap: () {
-                widget.state.setPlan(goal: null);
+                widget.state.setGoal(null);
                 Navigator.of(context).maybePop();
               }),
             ),
           ),
       ],
+    );
+  }
+}
+
+/// What [goal] takes a month in the picked case, next to what you add now.
+class _Takes extends StatelessWidget {
+  const _Takes(this.state, this.goal);
+
+  final AppState state;
+  final Goal goal;
+
+  @override
+  Widget build(BuildContext context) {
+    final need = state.monthlyForGoal(goal);
+    final scenario = const ['cautious', 'expected', 'hopeful'][state.scenario];
+    final String text;
+    if (need == null) {
+      text = 'Out of reach by ${goal.year} in the $scenario case. Try a later year or a smaller amount.';
+    } else if (need == 0) {
+      text = 'What you have today gets there on its own in the $scenario case.';
+    } else {
+      text = 'It takes ${eur(need, mask: false)} a month in the $scenario case. You add ${eur(state.monthly, mask: false)} now.';
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+      child: SizedBox(
+        height: 42,
+        child: Text(text, style: figures(sans(15, weight: FontWeight.w500, color: need != null && state.monthly >= need - 0.5 ? C.greenInk : C.ink, height: 1.4))),
+      ),
     );
   }
 }

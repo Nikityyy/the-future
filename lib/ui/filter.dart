@@ -9,6 +9,9 @@ import '../theme.dart';
 import 'basics.dart' show Pressable;
 
 const kindNames = {Kind.fund: 'Funds and stocks', Kind.crypto: 'Crypto', Kind.metal: 'Metals'};
+
+/// What a view with [filter] covers, in words: "everything" or "Funds and stocks".
+String viewName(Set<Kind> filter) => filter.isEmpty ? 'everything' : [for (final k in Kind.values) if (filter.contains(k)) kindNames[k]!].join(' and ');
 const kindColors = {Kind.fund: C.green, Kind.crypto: C.navy, Kind.metal: C.sand};
 
 /// Hides every amount, like the eye in a trading app.

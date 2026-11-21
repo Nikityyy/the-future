@@ -22,6 +22,10 @@ class SnapshotMissing implements Exception {
 
 typedef OneOffEntry = ({int year, int month, double amount});
 
+/// What you are saving towards: an amount by the end of a year. It counts
+/// the money in the tab on screen: on Funds and stocks, just the funds.
+typedef Goal = ({double amount, int year});
+
 /// Everything the screens read. Plans and scenarios live here and are saved
 /// as you change them; the portfolio itself only ever lives in memory and, as
 /// ciphertext, in the browser's storage.
@@ -56,8 +60,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   int years = 20;
   int scenario = 1; // 0 cautious, 1 expected, 2 hopeful
 
-  /// What you are saving towards: an amount by the end of a year.
-  ({double amount, int year})? goal;
+  Goal? goal;
   double raisePercent = 0;
   double inflation = defaultInflation;
   double savingsRate = defaultSavingsRate;
@@ -80,20 +83,33 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   bool get ready => snapshot != null && !locked;
 
   /// The kinds in use: the filter, limited to what the portfolio holds.
-  Set<Kind> get active {
+  Set<Kind> get active => kindsIn(filter);
+
+  /// The kinds a view with [filter] shows: the filter, limited to what the portfolio holds.
+  Set<Kind> kindsIn(Set<Kind> filter) {
     final present = snapshot?.kinds ?? Kind.values.toSet();
     final f = filter.intersection(present);
     return f.isEmpty ? present : f;
   }
 
-  double get usual => snapshot?.usualFor(active).roundToDouble() ?? 0;
+  /// What the view with [filter] holds today.
+  double valueIn(Set<Kind> filter) => kindsIn(filter).fold(0.0, (a, k) => a + (snapshot?.valueOf(k) ?? 0));
 
-  String get _viewKey => filter.isEmpty ? 'all' : ([for (final k in active) k.name]..sort()).join('+');
+  double get usual => usualIn(filter);
+  double usualIn(Set<Kind> filter) => snapshot?.usualFor(kindsIn(filter)).roundToDouble() ?? 0;
+
+  String _keyOf(Set<Kind> filter) => filter.isEmpty ? 'all' : ([for (final k in kindsIn(filter)) k.name]..sort()).join('+');
+  String get _viewKey => _keyOf(filter);
 
   /// What you set for this view, if anything.
   double? get monthlyOverride => monthlyBy[_viewKey];
 
-  double get monthly => monthlyOverride ?? usual;
+  double get monthly => monthlyIn(filter);
+
+  /// The monthly amount of the view with [filter]: set by hand, or its usual.
+  double monthlyIn(Set<Kind> filter) => monthlyBy[_keyOf(filter)] ?? usualIn(filter);
+
+
 
   List<OneOff> get oneOffsNow {
     final now = DateTime.now();
@@ -104,13 +120,15 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     ];
   }
 
-  /// [real] takes inflation off, so the result reads in today's money.
-  Projection projectionFor(int scenario, {double? monthlyAmount, int? months, bool real = false}) {
+  /// [real] takes inflation off, so the result reads in today's money. For
+  /// the view with [filter] when given, else the one on screen.
+  Projection projectionFor(int scenario, {double? monthlyAmount, int? months, bool real = false, Set<Kind>? filter}) {
     final s = snapshot!;
+    final kinds = kindsIn(filter ?? this.filter);
     return project(
-      start: {for (final k in active) k: s.valueOf(k)},
-      mix: s.mixFor(active),
-      monthly: monthlyAmount ?? monthly,
+      start: {for (final k in kinds) k: s.valueOf(k)},
+      mix: s.mixFor(kinds),
+      monthly: monthlyAmount ?? monthlyIn(filter ?? this.filter),
       months: months ?? years * 12,
       yearlyReturn: {for (final k in Kind.values) k: returns[k]![scenario]},
       raisePercent: raisePercent,
@@ -131,23 +149,28 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     return ((day - now.day) % length) / length;
   }
 
-  /// Months from now to the end of the goal's year.
-  int get goalMonths => goal == null ? 0 : ((goal!.year - DateTime.now().year) * 12 + 12 - DateTime.now().month).clamp(1, 1200);
+  /// Months from now to the end of [year].
+  static int monthsUntil(int year) => ((year - DateTime.now().year) * 12 + 12 - DateTime.now().month).clamp(1, 1200);
 
-  /// The year the picked scenario first reaches the goal at today's monthly
-  /// amount, or null when it does not within 100 years.
-  int? goalReachedIn() {
-    final g = goal!;
-    final v = projectionFor(scenario, months: 1200).values;
-    final i = v.indexWhere((x) => x >= g.amount);
+  /// The year the picked scenario first reaches [g] (the goal when not
+  /// given) with the money in the tab with [filter] (the one on screen when
+  /// not given) and its monthly amount, or null when it does not within
+  /// 100 years.
+  int? goalReachedIn([Goal? g, Set<Kind>? filter]) {
+    g ??= goal!;
+    final v = projectionFor(scenario, months: 1200, filter: filter).values;
+    final i = v.indexWhere((x) => x >= g!.amount);
     return i < 0 ? null : DateTime(DateTime.now().year, DateTime.now().month + i).year;
   }
 
-  /// The monthly amount that reaches the goal in time in the picked
-  /// scenario, or null when no sensible amount does.
-  double? monthlyForGoal() {
-    final g = goal!;
-    bool enough(double m) => projectionFor(scenario, monthlyAmount: m, months: goalMonths).end >= g.amount;
+  /// The monthly amount that reaches [g] (the goal when not given) in time
+  /// in the picked scenario, counting only the tab with [filter] (the one on
+  /// screen when not given): what it holds today and the money going into
+  /// it. Null when no sensible amount does.
+  double? monthlyForGoal([Goal? g, Set<Kind>? filter]) {
+    g ??= goal!;
+    final months = monthsUntil(g.year);
+    bool enough(double m) => projectionFor(scenario, monthlyAmount: m, months: months, filter: filter).end >= g!.amount;
     if (enough(0)) return 0;
     var lo = 0.0, hi = 500.0;
     while (!enough(hi)) {
@@ -349,6 +372,12 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
+  void setGoal(Goal? g) {
+    goal = g;
+    _save();
+    notifyListeners();
+  }
+
   void setCompare(bool v) {
     compare = v;
     _save();
@@ -370,11 +399,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     double? savingsRate,
     Returns? returns,
     List<OneOffEntry>? oneOffs,
-    Object? goal = _keep,
     int? lockMinutes,
   }) {
     this.lockMinutes = lockMinutes ?? this.lockMinutes;
-    if (goal != _keep) this.goal = goal as ({double amount, int year})?;
     if (monthly != _keep) {
       if (monthly == null) {
         monthlyBy.remove(_viewKey);

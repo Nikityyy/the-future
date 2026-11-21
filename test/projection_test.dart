@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:the_future/projection.dart';
+import 'package:the_future/ui/chart.dart';
 
 void main() {
   const mix = {Kind.fund: 1.0};
@@ -71,5 +72,25 @@ void main() {
   test('each kind grows at its own rate', () {
     final p = project(start: {Kind.fund: 1000, Kind.crypto: 1000}, mix: mix, monthly: 0, months: 12, yearlyReturn: {Kind.fund: 10, Kind.crypto: -20});
     expect(p.end, closeTo(1000 * 1.1 + 1000 * 0.8, 1e-9));
+  });
+
+  test('the chart scale steps in round amounts and sits just above the top', () {
+    bool round(double step) {
+      final e = math.pow(10, (math.log(step) / math.ln10).floor()).toDouble();
+      return [1.0, 2.0, 2.5, 5.0, 10.0].any((m) => (step - m * e).abs() < e * 1e-9);
+    }
+
+    for (var v = 50.0; v < 5e7; v *= 1.0137) {
+      for (final short in [true, false]) {
+        final (top, n) = chartScale(v, short: short);
+        expect(round(top / n), isTrue, reason: '$v: steps of ${top / n}');
+        expect(top, greaterThanOrEqualTo(v * 1.04 - 1e-6));
+        expect(top, lessThan(v * 2), reason: '$v: no more than double the room it needs');
+      }
+    }
+    expect(chartScale(216000, short: false), (250000.0, 5), reason: 'was €250K in steps of €62.5K');
+    expect([for (var i = 0; i <= 5; i++) shortEur(250000 * i / 5)], ['€0', '€50K', '€100K', '€150K', '€200K', '€250K']);
+    expect(shortEur(2500), '€2.5K');
+    expect(shortEur(1250000), '€1.25M');
   });
 }

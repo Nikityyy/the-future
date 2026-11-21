@@ -31,7 +31,8 @@ class FuturePage extends StatelessWidget {
           final mid = state.projectionFor(state.scenario);
           final high = state.projectionFor(2);
           final real = state.projectionFor(state.scenario, real: true).end;
-          final goal = state.filter.isEmpty ? state.goal : null;
+          // Counted with the money in this tab only (see AppState.monthlyForGoal).
+          final goal = state.goal;
           final milestones = _milestones(mid.values, now: DateTime.now());
           final usual = state.usual;
           final changed = state.monthlyOverride != null && state.monthlyOverride != usual;
@@ -88,7 +89,7 @@ class FuturePage extends StatelessWidget {
                     years: state.years,
                     restartKey: '${state.years}${state.scenario}',
                     monthsPerPoint: step,
-                    goal: goal?.amount,
+                    goal: goal == null ? null : (amount: goal.amount, months: AppState.monthsUntil(goal.year)),
                   ),
                 ),
               ),
@@ -152,7 +153,7 @@ class FuturePage extends StatelessWidget {
                   header: 'YOUR PLAN',
                   footer: 'A projection, not a forecast. Before taxes and fees. Not financial advice.',
                   children: [
-                    Row2(title: 'Goal', trailing: Text(state.goal == null ? 'Set one' : '${eur(state.goal!.amount)} by ${state.goal!.year}', style: figures(sans(15, color: C.ink2))), chevron: true, onTap: () => showSheet<void>(context, (_) => GoalSheet(state), height: state.goal == null ? 428 : 484)),
+                    Row2(title: 'Goal', trailing: Text(state.goal == null ? 'Set one' : '${eur(state.goal!.amount)} by ${state.goal!.year}', style: figures(sans(15, color: C.ink2))), chevron: true, onTap: () => showSheet<void>(context, (_) => GoalSheet(state), height: GoalSheet.height(state))),
                     Row2(title: 'One-time additions', trailing: Text(state.oneOffs.isEmpty ? 'None' : '${state.oneOffs.length}', style: sans(15, color: C.ink2)), chevron: true, onTap: () => showSheet<void>(context, (_) => OneOffsSheet(state))),
                     Row2(title: 'Assumptions', subtitle: 'Returns, inflation, yearly raise', chevron: true, onTap: () => showSheet<void>(context, (_) => AssumptionsSheet(state))),
                   ],
@@ -237,7 +238,8 @@ class _Parts extends StatelessWidget {
   }
 }
 
-/// How the goal stands: progress today and whether the plan gets there in time.
+/// How the goal stands: what it takes a month next to what you add, and a
+/// way to plan with what it takes.
 class _GoalCard extends StatelessWidget {
   const _GoalCard(this.state);
   final AppState state;
@@ -245,30 +247,48 @@ class _GoalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final g = state.goal!;
-    final today = state.snapshot!.value;
+    final today = state.valueIn(state.filter);
+    final need = state.monthlyForGoal();
     final reached = state.goalReachedIn();
-    final onTrack = reached != null && reached <= g.year;
-    final need = onTrack ? null : state.monthlyForGoal();
     final scenario = _scenarioNames[state.scenario].toLowerCase();
+    final onTrack = need != null && state.monthly >= need - 0.5;
     final String status;
-    if (onTrack) {
-      status = 'On track. At ${eur(state.monthly)} a month the $scenario case gets there in $reached.';
+    if (need == 0) {
+      status = 'What you have today gets there by ${g.year} on its own in the $scenario case.';
+    } else if (onTrack) {
+      status = 'On track. At ${eur(state.monthly)} a month the $scenario case gets there${reached != null ? ' in $reached' : ''}.';
     } else if (need == null) {
-      status = 'Out of reach by ${g.year} in the $scenario case. Try a later year.';
+      status = 'Out of reach by ${g.year} in the $scenario case. Try a later year or a smaller amount.';
     } else {
-      status = 'Add ${eur(need)} a month instead of ${eur(state.monthly)} to get there by ${g.year}.${reached != null ? ' At today’s amount it takes until $reached.' : ''}';
+      status = '${eur(need - state.monthly)} a month short.${reached != null ? ' At ${eur(state.monthly)} it takes until $reached.' : ''}';
     }
+
+    Widget figure(String label, String value, Color color) => Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: sans(13, color: C.ink2)),
+              const SizedBox(height: 4),
+              Text.rich(TextSpan(children: [
+                TextSpan(text: value, style: figures(serif(26, color: color, tracking: -0.4))),
+                TextSpan(text: ' a month', style: sans(13, color: C.ink2)),
+              ])),
+            ],
+          ),
+        );
+
     return Group(
       header: 'YOUR GOAL',
       children: [
         Pressable(
-          onTap: () => showSheet<void>(context, (_) => GoalSheet(state), height: state.goal == null ? 428 : 484),
+          onTap: () => showSheet<void>(context, (_) => GoalSheet(state), height: GoalSheet.height(state)),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${eur(g.amount)} by ${g.year}', style: serif(26, tracking: -0.4)),
+                Text('${eur(g.amount)} by the end of ${g.year}', style: serif(24, tracking: -0.4)),
+                if (state.filter.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text('Counting ${viewName(state.filter)} only', style: sans(13, color: C.ink2))),
                 const SizedBox(height: 12),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(5),
@@ -281,8 +301,20 @@ class _GoalCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text('${eur(today)} today, ${(today / g.amount * 100).clamp(0, 100).toStringAsFixed(0)}% of the way', style: figures(sans(13, color: C.ink2))),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    figure('It takes', need == null ? '—' : eur(need), onTrack ? C.greenInk : C.ink),
+                    figure('You add', eur(state.monthly), C.ink),
+                  ],
+                ),
                 const SizedBox(height: 12),
-                Text(status, style: sans(15, weight: FontWeight.w500, color: onTrack ? C.greenInk : C.ink, height: 1.4)),
+                Text(status, style: sans(14.5, weight: FontWeight.w500, color: onTrack ? C.greenInk : C.ink, height: 1.4)),
+                if (need != null && !onTrack) ...[
+                  const SizedBox(height: 14),
+                  PillButton('Plan with ${eur((need / 5).ceil() * 5.0)} a month', strong: true, onTap: () => state.setPlan(monthly: (need / 5).ceil() * 5.0)),
+                ],
               ],
             ),
           ),
