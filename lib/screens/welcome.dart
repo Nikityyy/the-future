@@ -32,13 +32,25 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   List<double> _thin(List<double> v) => [for (var i = 0; i < v.length; i += 2) v[i], v.last];
 
+  /// Below this height the chart has no room left: the page keeps this
+  /// height and scrolls instead of squeezing the chart flat.
+  static const _minHeight = 720.0;
+
   @override
   Widget build(BuildContext context) {
     final low = _run(3), mid = _run(6.5), high = _run(9);
     final safe = browserSafeArea();
     return ColoredBox(
       color: C.ground,
-      child: Padding(
+      child: LayoutBuilder(
+        builder: (context, box) => box.maxHeight >= _minHeight
+            ? _page(safe, low, mid, high)
+            : SingleChildScrollView(child: SizedBox(height: _minHeight, child: _page(safe, low, mid, high))),
+      ),
+    );
+  }
+
+  Widget _page(EdgeInsets safe, Projection low, Projection mid, Projection high) => Padding(
         padding: EdgeInsets.only(top: safe.top + 14, bottom: safe.bottom + 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,7 +128,5 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               Center(child: Text('Free. No account. Your key stays on GitHub.', style: sans(12.5, color: C.ink2))),
           ],
         ),
-      ),
-    );
-  }
+      );
 }

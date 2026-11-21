@@ -59,7 +59,11 @@ class _PinPadState extends State<PinPad> with SingleTickerProviderStateMixin {
   }
 
   @override
-  Widget build(BuildContext context) => Column(
+  Widget build(BuildContext context) {
+    // The same room above and below the dots; less of it on a short phone,
+    // so the keypad and the line under it still fit.
+    final gap = MediaQuery.sizeOf(context).height < 700 ? 20.0 : 32.0;
+    return Column(
         children: [
           const Spacer(flex: 2),
           BlurText(widget.title, style: serif(34), align: WrapAlignment.center),
@@ -68,7 +72,9 @@ class _PinPadState extends State<PinPad> with SingleTickerProviderStateMixin {
               padding: const EdgeInsets.fromLTRB(40, 12, 40, 0),
               child: Text(widget.subtitle!, style: sans(15, color: C.ink2, height: 1.4), textAlign: TextAlign.center),
             ),
-          const SizedBox(height: 30),
+          // The dots sit halfway between the words and the keys; spare height
+          // goes above the title and below the keys, never next to the dots.
+          SizedBox(height: gap),
           AnimatedBuilder(
             animation: _shake,
             builder: (context, child) => Transform.translate(offset: Offset(12 * (1 - _shake.value) * _wave(_shake.value), 0), child: child),
@@ -90,7 +96,7 @@ class _PinPadState extends State<PinPad> with SingleTickerProviderStateMixin {
               ],
             ),
           ),
-          const Spacer(),
+          SizedBox(height: gap),
           for (final row in const [['1', '2', '3'], ['4', '5', '6'], ['7', '8', '9'], ['', '0', '<']])
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -133,10 +139,12 @@ class _PinPadState extends State<PinPad> with SingleTickerProviderStateMixin {
                 ],
               ),
             ),
+          const Spacer(),
           SizedBox(height: 56, child: Center(child: widget.footer)),
           SizedBox(height: 12 + browserSafeArea().bottom),
         ],
       );
+  }
 
   static double _wave(double t) => t == 0 ? 0 : (t * 12).floor().isEven ? 1 : -1;
 }
